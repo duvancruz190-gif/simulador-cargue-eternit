@@ -2,7 +2,7 @@ import streamlit as st
 
 # 1. CONFIGURACIÓN DE SEGURIDAD
 USUARIO_CORRECTO = "DUVANCRUZ190@GMAIL.COM"
-CLAVE_CORRECTA = "Du854872-"
+CLAVE_CORRECTA = "Du854872*"
 
 st.set_page_config(page_title="Sistema de Cargue Eternit - Teja #4", layout="wide")
 
@@ -38,13 +38,23 @@ if login():
     # Estilos CSS
     st.markdown("""
     <style>
+        /* Contenedor del encabezado */
         .header-bg {
-            background-color: #E0E0E0;
-            padding: 20px;
-            border-bottom: 8px solid #E30613;
-            border-radius: 12px;
+            background-color: white;
+            padding: 10px 20px;
+            margin-bottom: 0px;
+        }
+        
+        /* La barra gris delgada con borde rojo inferior */
+        .decor-bar {
+            background-color: #EEEEEE; /* Gris claro */
+            border-bottom: 6px solid #E30613; /* Borde rojo */
+            height: 35px; /* Menos grueso */
+            width: 100%;
+            border-radius: 8px 8px 0 0;
             margin-bottom: 30px;
         }
+
         .cabina {
             background: #1A3A5A;
             color: white;
@@ -75,18 +85,17 @@ if login():
     </style>
     """, unsafe_allow_html=True)
 
-    # --- ENCABEZADO CON LOS NOMBRES REALES DE TUS ARCHIVOS ---
+    # --- ENCABEZADO CON LOGOS ---
     st.markdown('<div class="header-bg">', unsafe_allow_html=True)
     c1, c2, c3 = st.columns([2, 1, 2])
-    
     with c1:
-        # Nombre corregido según tu GitHub
         st.image("logo-eternit-400x150-1.png", width=280)
-
     with c3:
-        # Nombre corregido según tu GitHub
         st.image("Elementia.png", width=250)
     st.markdown('</div>', unsafe_allow_html=True)
+
+    # --- BARRA DECORATIVA GRIS Y ROJA (DEBAJO DE LOGOS) ---
+    st.markdown('<div class="decor-bar"></div>', unsafe_allow_html=True)
 
     st.title("🚛 Picking de Producto: Teja de # 4")
 
