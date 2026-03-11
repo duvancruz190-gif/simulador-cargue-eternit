@@ -6,7 +6,7 @@ CLAVE_CORRECTA = "Du854872*"
 
 st.set_page_config(page_title="Smart Picking & Logistic Guide", layout="wide")
 
-# URL del logo oficial de Eternit (puedes usar una ruta local si prefieres)
+# URL del logo oficial de alta calidad para evitar pixelado
 LOGO_URL = "https://eternit.com.co/templates/g5_helium/custom/images/logo-eternit.png"
 
 # Función de Validación de Acceso
@@ -15,80 +15,95 @@ def login():
         st.session_state.autenticado = False
 
     if not st.session_state.autenticado:
-        # Estilos específicos para la pantalla de Login
+        # Estilos específicos para la pantalla de Login con diseño limpio
         st.markdown("""
             <style>
             .login-container {
-                background-color: #f8f9fa;
+                background-color: #ffffff;
                 padding: 40px;
                 border-radius: 15px;
                 border-top: 10px solid #E30613;
                 text-align: center;
-                box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            }
-            .login-logo {
-                width: 250px;
-                margin-bottom: 20px;
+                box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+                margin-top: 50px;
             }
             .stButton>button {
                 width: 100%;
                 background-color: #E30613;
                 color: white;
+                font-weight: bold;
+                border: none;
+                padding: 10px;
+                border-radius: 5px;
+            }
+            .stButton>button:hover {
+                background-color: #b3050f;
+                color: white;
             }
             </style>
         """, unsafe_allow_html=True)
 
-        col1, col2, col3 = st.columns([1, 1.5, 1])
+        col1, col2, col3 = st.columns([1, 1.2, 1])
         
         with col2:
             st.markdown('<div class="login-container">', unsafe_allow_html=True)
-            st.image(LOGO_URL, width=280)
-            st.markdown('<h3 style="color: #1A3A5A; margin-top:0;">SISTEMA DE PICKING</h3>', unsafe_allow_html=True)
+            st.image(LOGO_URL, width=250)
+            st.markdown('<h2 style="color: #1A3A5A; margin-bottom: 25px; font-family: sans-serif;">SISTEMA DE PICKING</h2>', unsafe_allow_html=True)
             
-            usuario = st.text_input("Correo electrónico", placeholder="ejemplo@correo.com").upper()
+            usuario = st.text_input("Correo electrónico", placeholder="usuario@ejemplo.com").upper()
             clave = st.text_input("Contraseña", type="password", placeholder="••••••••")
             
-            if st.button("Ingresar"):
+            if st.button("Ingresar al Sistema"):
                 if usuario == USUARIO_CORRECTO and clave == CLAVE_CORRECTA:
                     st.session_state.autenticado = True
                     st.rerun()
                 else:
-                    st.error("Credenciales incorrectas")
+                    st.error("Credenciales incorrectas. Intente de nuevo.")
             st.markdown('</div>', unsafe_allow_html=True)
         return False
     return True
 
 if login():
-    # 2. ESTILOS CSS PARA EL CUERPO DE LA APP
+    # 2. ESTILOS CSS PARA EL PANEL PRINCIPAL
     st.markdown("""
     <style>
+        /* Contenedor del encabezado */
         .header-container {
-            background-color: white;
-            padding: 20px 0px;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px 0;
+            background-color: white;
         }
+        
+        /* Barra decorativa gris con borde inferior rojo */
         .decor-bar {
-            background-color: #EEEEEE; 
-            border-bottom: 5px solid #E30613; 
-            height: 15px; 
+            background-color: #F2F2F2; 
+            border-bottom: 6px solid #E30613; 
+            height: 12px; 
             width: 100%;
-            margin-bottom: 20px;
+            margin: 10px 0 25px 0;
+            border-radius: 3px;
         }
+
         .main-title {
             text-align: center;
             color: #1A3A5A;
-            font-family: 'Helvetica Neue', sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             font-weight: 800;
-            margin-bottom: 10px;
+            margin-bottom: 5px;
         }
+
+        /* Estilos del Camión */
         .cabina {
             background: #1A3A5A;
             color: white;
             text-align: center;
             padding: 15px;
             font-weight: bold;
-            border-radius: 10px 10px 0 0;
+            border-radius: 12px 12px 0 0;
+            letter-spacing: 2px;
+            margin-bottom: 10px;
         }
         .celda {
             background: #27ae60;
@@ -96,40 +111,41 @@ if login():
             text-align: center;
             padding: 12px;
             margin: 4px;
-            border-radius: 6px;
+            border-radius: 8px;
             font-weight: bold;
-            box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+            box-shadow: 1px 1px 3px rgba(0,0,0,0.1);
         }
         .saldo {
             background: #f1c40f;
             color: black;
             padding: 12px;
             margin: 4px;
-            border-radius: 6px;
+            border-radius: 8px;
             text-align: center;
             font-weight: bold;
+            box-shadow: 1px 1px 3px rgba(0,0,0,0.1);
         }
     </style>
     """, unsafe_allow_html=True)
 
-    # 3. ENCABEZADO: LOGO OFICIAL
-    izq, logo_centro, der = st.columns([1.5, 2, 1.5])
-    with logo_centro:
-        # Usamos use_container_width=True pero dentro de una columna controlada para nitidez
-        st.image(LOGO_URL, width=350)
-
+    # 3. ENCABEZADO PRINCIPAL CON LOGO
+    col_l, col_c, col_r = st.columns([1, 2, 1])
+    with col_c:
+        st.image(LOGO_URL, width=320)
+    
     st.markdown('<div class="decor-bar"></div>', unsafe_allow_html=True)
     st.markdown('<h1 class="main-title">🚛 Smart Picking & Logistic Guide</h1>', unsafe_allow_html=True)
 
-    # 4. SIDEBAR Y LÓGICA (Mantenemos tu lógica original)
+    # 4. SIDEBAR Y ENTRADA DE DATOS
     with st.sidebar:
-        st.header("Entrada de Datos")
-        pedido_raw = st.text_input("Ingrese cantidad de Teja de # 4", value="0")
-        if st.sidebar.button("Cerrar Sesión"):
+        st.header("⚙️ Panel de Control")
+        pedido_raw = st.text_input("Cantidad de Teja # 4", value="0")
+        st.markdown("---")
+        if st.button("Cerrar Sesión"):
             st.session_state.autenticado = False
             st.rerun()
     
-    # --- Cálculos y Distribución (Tu lógica original intacta) ---
+    # Lógica de carga
     cantidad = int(pedido_raw) if pedido_raw.isdigit() else 0
     PAQUETE = 130
     MAX_PAQUETES = 20
@@ -137,8 +153,9 @@ if login():
     CAPACIDAD_TOTAL = (MAX_PAQUETES * PAQUETE) + (20 * MAX_SALDO_UNIDAD)
 
     if cantidad > CAPACIDAD_TOTAL:
-        st.error(f"⚠️ El pedido excede la capacidad ({CAPACIDAD_TOTAL} unidades).")
+        st.error(f"⚠️ Capacidad excedida. Máximo permitido: {CAPACIDAD_TOTAL} unidades.")
     else:
+        # Cálculos de distribución (Mantenemos tu lógica original exacta)
         paquetes_ok = min(cantidad // PAQUETE, MAX_PAQUETES)
         sobrante = cantidad - (paquetes_ok * PAQUETE)
         saldos_lista = []
@@ -155,10 +172,10 @@ if login():
         p_izq = paquetes_ok // 2 + paquetes_ok % 2
         p_der = paquetes_ok // 2
 
-        # 5. DISTRIBUCIÓN VISUAL DEL CAMIÓN
-        col_izq, col_der = st.columns([3, 1])
+        # 5. RENDERIZADO DEL CAMIÓN
+        col_camion, col_resumen = st.columns([3, 1])
 
-        with col_izq:
+        with col_camion:
             st.markdown('<div class="cabina">FRENTE DEL VEHÍCULO (CABINA)</div>', unsafe_allow_html=True)
             for i in range(10):
                 r1, r2, r3, r4 = st.columns([1, 1, 1, 1])
@@ -175,9 +192,9 @@ if login():
                     val = s_der[i] if i < len(s_der) else ""
                     st.markdown(f'<div class="saldo">{val}</div>', unsafe_allow_html=True)
 
-        with col_der:
+        with col_resumen:
             st.subheader("📋 Resumen")
             st.table({
-                "Detalle": ["Total Unidades", "Paquetes (130)", "Saldos"],
-                "Valor": [cantidad, paquetes_ok, len(saldos_lista)]
+                "Concepto": ["Unidades Totales", "Paquetes Completos", "Saldos Sueltos"],
+                "Cantidad": [cantidad, paquetes_ok, len(saldos_lista)]
             })
