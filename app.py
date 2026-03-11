@@ -14,13 +14,10 @@ def login():
     if not st.session_state.autenticado:
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
-            # CAJA DE LOGIN
-            st.markdown(f"""
-                <div style="background-color: #E0E0E0; padding: 20px; border-radius: 15px; border-top: 8px solid #E30613; text-align: center; margin-bottom: 20px;">
-                </div>
-            """, unsafe_allow_html=True)
+            # Espaciado superior para centrar verticalmente
+            st.markdown("<br><br>", unsafe_allow_html=True)
             
-            # --- NUEVO LOGO PARA INICIO DE SESIÓN ---
+            # --- LOGO PARA INICIO DE SESIÓN ---
             try:
                 st.image("ETERNIT LOGOS.webp", use_container_width=True)
             except:
@@ -28,10 +25,11 @@ def login():
             
             st.markdown("<br>", unsafe_allow_html=True)
             st.subheader("Inicie sesión para continuar")
+            
             usuario = st.text_input("Correo electrónico").upper()
             clave = st.text_input("Contraseña", type="password")
             
-            if st.button("Ingresar"):
+            if st.button("Ingresar", use_container_width=True):
                 if usuario == USUARIO_CORRECTO and clave == CLAVE_CORRECTA:
                     st.session_state.autenticado = True
                     st.rerun()
@@ -41,7 +39,7 @@ def login():
     return True
 
 if login():
-    # 2. ESTILOS CSS
+    # 2. ESTILOS CSS PARA LA APP PRINCIPAL
     st.markdown("""
     <style>
         .header-container {
@@ -102,7 +100,7 @@ if login():
     </style>
     """, unsafe_allow_html=True)
 
-    # 3. ENCABEZADO (MANTIENE EL LOGO ORIGINAL SEGÚN TU SOLICITUD)
+    # 3. ENCABEZADO (PANTALLA PRINCIPAL)
     st.markdown('<div class="header-container">', unsafe_allow_html=True)
     izq, logo_centro, der = st.columns([1.5, 2, 1.5])
     with logo_centro:
