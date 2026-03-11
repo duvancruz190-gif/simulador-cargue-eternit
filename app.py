@@ -14,13 +14,19 @@ def login():
     if not st.session_state.autenticado:
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
+            # CAJA DE LOGIN
             st.markdown(f"""
-                <div style="background-color: #E0E0E0; padding: 30px; border-radius: 15px; border-top: 8px solid #E30613; text-align: center;">
-                    <h1 style="color: #E30613; margin-bottom: 0; font-family: Arial Black;">ETERNIT</h1>
-                    <p style="color: #1A3A5A; font-weight: bold;">SISTEMA DE PICKING</p>
+                <div style="background-color: #E0E0E0; padding: 20px; border-radius: 15px; border-top: 8px solid #E30613; text-align: center; margin-bottom: 20px;">
                 </div>
             """, unsafe_allow_html=True)
             
+            # --- NUEVO LOGO PARA INICIO DE SESIÓN ---
+            try:
+                st.image("ETERNIT LOGOS.webp", use_container_width=True)
+            except:
+                st.error("No se encontró el archivo: ETERNIT LOGOS.webp")
+            
+            st.markdown("<br>", unsafe_allow_html=True)
             st.subheader("Inicie sesión para continuar")
             usuario = st.text_input("Correo electrónico").upper()
             clave = st.text_input("Contraseña", type="password")
@@ -96,7 +102,7 @@ if login():
     </style>
     """, unsafe_allow_html=True)
 
-    # 3. ENCABEZADO
+    # 3. ENCABEZADO (MANTIENE EL LOGO ORIGINAL SEGÚN TU SOLICITUD)
     st.markdown('<div class="header-container">', unsafe_allow_html=True)
     izq, logo_centro, der = st.columns([1.5, 2, 1.5])
     with logo_centro:
@@ -138,7 +144,6 @@ if login():
         saldos_lista.append(carga)
         temp_sobrante -= carga
 
-    # Distribución en columnas (Zig-Zag o Espejo)
     s_izq = saldos_lista[::2]
     s_der = saldos_lista[1::2]
     p_izq = (paquetes_ok + 1) // 2
@@ -150,29 +155,21 @@ if login():
     with col_izq:
         st.markdown('<div class="cabina">FRENTE DEL VEHÍCULO (CABINA)</div>', unsafe_allow_html=True)
         
-        # Generar las 10 filas de la plataforma del camión
         for i in range(10):
             r1, r2, r3, r4 = st.columns([1, 1, 1, 1])
             
-            # Columna 1: Saldos Izquierda
             with r1:
                 val = s_izq[i] if i < len(s_izq) else ""
                 estilo = "saldo" if val != "" else "vacio"
                 st.markdown(f'<div class="{estilo}">{val}</div>', unsafe_allow_html=True)
-            
-            # Columna 2: Paquetes Izquierda
             with r2:
                 val = PAQUETE if i < p_izq else ""
                 estilo = "celda" if val != "" else "vacio"
                 st.markdown(f'<div class="{estilo}">{val}</div>', unsafe_allow_html=True)
-            
-            # Columna 3: Paquetes Derecha
             with r3:
                 val = PAQUETE if i < p_der else ""
                 estilo = "celda" if val != "" else "vacio"
                 st.markdown(f'<div class="{estilo}">{val}</div>', unsafe_allow_html=True)
-            
-            # Columna 4: Saldos Derecha
             with r4:
                 val = s_der[i] if i < len(s_der) else ""
                 estilo = "saldo" if val != "" else "vacio"
@@ -180,13 +177,6 @@ if login():
 
     with col_der:
         st.subheader("📋 Resumen de Carga")
-        resumen = {
-            "Total Unidades": f"{cantidad}",
-            "Paquetes Completos": f"{paquetes_ok}",
-            "Unidades Sueltas": f"{sobrante}",
-            "Puestos de Saldo": f"{len(saldos_lista)}"
-        }
-        for clave, valor in resumen.items():
-            st.metric(label=clave, value=valor)
-            
-        st.info("💡 Los cuadros verdes representan paquetes de 130 unidades y los amarillos son saldos manuales.")
+        st.metric(label="Total Unidades", value=cantidad)
+        st.metric(label="Paquetes (130)", value=paquetes_ok)
+        st.metric(label="Saldos", value=len(saldos_lista))
