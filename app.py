@@ -133,3 +133,17 @@ if login():
 
         # Filas de 2 columnas
         for i in range(0, len(total_bloques), 2):
+            c1, c2 = st.columns(2)
+            for idx, col in enumerate([c1, c2]):
+                with col:
+                    bloque = total_bloques[i + idx]
+                    clase = "celda-amarilla" if "SALDO" in bloque else "celda-verde"
+                    st.markdown(f'<div class="{clase}">{bloque}</div>', unsafe_allow_html=True)
+
+        if bloque_atravesado:
+            clase_h = "celda-amarilla" if "SALDO" in bloque_atravesado else "paquete-h"
+            st.markdown(f'<div class="{clase_h}">📦 CARGA TRASERA (CENTRAL / HORIZONTAL)<br>{bloque_atravesado}</div>', unsafe_allow_html=True)
+            
+        st.success(f"Configuración de carga optimizada para {vh['tipo']}. Revise el balance de pesos por ejes.")
+    else:
+        st.info("💡 Pegue los datos del pedido en el panel de la izquierda para comenzar.")
