@@ -120,4 +120,4 @@ if login():
 
         if atravesado:
             clase_h = "paquete-h" if atravesado["tipo"] == "verde" else "saldo-box"
-            st.markdown(f'<div class="{clase_h}">📦 CARGA TRASERA (ATRAVESADA)<br>{atraves
+            st.markdown(f'<div class="{clase_h}">📦 CARGA TRASERA (ATRAVESADA)<br>{atravesado["label"]}</div>', unsafe_allow_html=True)
