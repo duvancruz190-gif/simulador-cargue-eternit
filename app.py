@@ -1,10 +1,10 @@
 import streamlit as st
 
 # 1. CONFIGURACIÓN DE SEGURIDAD
-USUARIO_CORRECTO = "DUVANCRUZ190@GMAIL.COM" #
-CLAVE_CORRECTA = "Du854872*" #
+USUARIO_CORRECTO = "DUVANCRUZ190@GMAIL.COM"
+CLAVE_CORRECTA = "Du854872*"
 
-st.set_page_config(page_title="Sistema de Cargue Eternit - Teja #4", layout="wide")
+st.set_page_config(page_title="Smart Picking & Logistic Guide", layout="wide")
 
 # Función de Validación de Acceso
 def login():
@@ -43,7 +43,7 @@ if login():
             background-color: white;
             padding: 10px 0px;
             display: flex;
-            justify-content: center; /* Centrado horizontal de la columna */
+            justify-content: center;
             align-items: center;
         }
         
@@ -54,7 +54,15 @@ if login():
             height: 30px; 
             width: 100%;
             border-radius: 5px;
-            margin-bottom: 25px;
+            margin-bottom: 10px;
+        }
+
+        /* Centrado del título principal */
+        .main-title {
+            text-align: center;
+            color: #1A3A5A;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin-bottom: 30px;
         }
 
         .cabina {
@@ -87,21 +95,19 @@ if login():
     </style>
     """, unsafe_allow_html=True)
 
-    # 3. ENCABEZADO: LOGO DE ETERNIT CENTRADO (TAMAÑO ORIGINAL)
-    # Usamos columnas laterales más anchas [1.5] para empujar el logo al centro [2]
+    # 3. ENCABEZADO: LOGO DE ETERNIT CENTRADO
     st.markdown('<div class="header-container">', unsafe_allow_html=True)
-    izq, logo1, der = st.columns([1.5, 2, 1.5])
-    
-    with logo1:
-        # Se usa el nombre exacto de tu archivo en GitHub, Elementia ha sido eliminado
+    izq, logo_centro, der = st.columns([1.5, 2, 1.5])
+    with logo_centro:
+        # Logo en tamaño original para evitar pixeleado
         st.image("logo-eternit-400x150-1.png", use_container_width=False)
-
     st.markdown('</div>', unsafe_allow_html=True)
 
     # BARRA DECORATIVA (Gris con borde rojo)
     st.markdown('<div class="decor-bar"></div>', unsafe_allow_html=True)
 
-    st.title("🚛 Picking de Producto: Teja de # 4")
+    # NUEVO TÍTULO CENTRADO
+    st.markdown('<h1 class="main-title">🚛 Smart Picking & Logistic Guide</h1>', unsafe_allow_html=True)
 
     # 4. SIDEBAR Y LÓGICA DE CARGA
     with st.sidebar:
