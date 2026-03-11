@@ -1,5 +1,4 @@
 import streamlit as st
-import base64
 
 # 1. CONFIGURACIÓN DE SEGURIDAD
 USUARIO_CORRECTO = "DUVANCRUZ190@GMAIL.COM"
@@ -13,63 +12,14 @@ def login():
         st.session_state.autenticado = False
 
     if not st.session_state.autenticado:
-        # --- NUEVO CSS PARA DISEÑO MINIMALISTA Y SUTIL ---
-        # Este CSS elimina barras, centra todo y da estilos limpios
-        st.markdown("""
-            <style>
-            /* Elimina el header por defecto de Streamlit */
-            header { visibility: hidden; }
-            
-            /* Contenedor principal de login centrado */
-            .stApp > div {
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                height: 100vh;
-                margin-top: 0;
-            }
-            
-            /* Caja de login sutil y flotante */
-            .login-box {
-                background-color: white;
-                padding: 40px;
-                border-radius: 12px;
-                box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-                text-align: center;
-                max-width: 400px;
-                margin-top: -100px; /* Ajuste para centrar visualmente */
-            }
-            
-            /* Estilo del botón */
-            .stButton>button {
-                width: 100%;
-                background-color: #E30613;
-                color: white;
-                border-radius: 6px;
-                border: none;
-                font-weight: bold;
-                height: 3em;
-            }
-            </style>
-        """, unsafe_allow_html=True)
-
-        # Usamos columnas solo para forzar el centrado
-        col1, col2, col3 = st.columns([1, 1.2, 1])
-        
+        col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
-            st.markdown('<div class="login-box">', unsafe_allow_html=True)
-            
-            # --- EL LOGO: SUTIL, PEQUEÑO Y NÍTIDO ---
-            # Para garantizar nitidez total, cargamos la imagen en base64
-            # Asegúrate que el archivo 'Elementia.png' esté en tu carpeta.
-            # 'Elementia.png' es la imagen que tiene el logo original nítido.
-            with open("Elementia.png", "rb") as image_file:
-                encoded_image = base64.b64encode(image_file.read()).decode()
-            
-            # El width=200 asegura que se vea pequeño y sutil, sin estirarse.
-            st.markdown(f'<img src="data:image/png;base64,{encoded_image}" width="200" style="margin-bottom: 20px;">', unsafe_allow_html=True)
-            
-            st.markdown('<p style="color: #1A3A5A; font-weight: bold; margin-bottom: 25px;">SISTEMA DE PICKING</p>', unsafe_allow_html=True)
+            st.markdown(f"""
+                <div style="background-color: #E0E0E0; padding: 30px; border-radius: 15px; border-top: 8px solid #E30613; text-align: center;">
+                    <h1 style="color: #E30613; margin-bottom: 0; font-family: Arial Black;">ETERNIT</h1>
+                    <p style="color: #1A3A5A; font-weight: bold;">SISTEMA DE PICKING</p>
+                </div>
+            """, unsafe_allow_html=True)
             
             st.subheader("Inicie sesión para continuar")
             usuario = st.text_input("Correo electrónico").upper()
@@ -80,13 +30,11 @@ def login():
                     st.session_state.autenticado = True
                     st.rerun()
                 else:
-                    st.error("Credenciales incorrectas")
-            st.markdown('</div>', unsafe_allow_html=True)
+                    st.error("Correo o contraseña incorrectos")
         return False
     return True
 
 if login():
-    # --- RESTO DEL CÓDIGO (Sin cambios, ya que aquí sí se quiere el header) ---
     # 2. ESTILOS CSS (LOGOS, BARRA Y CAMIÓN)
     st.markdown("""
     <style>
@@ -147,13 +95,12 @@ if login():
     </style>
     """, unsafe_allow_html=True)
 
-    # 3. ENCABEZADO INTERNO: LOGO PEQUEÑO Y NÍTIDO
+    # 3. ENCABEZADO: LOGO DE ETERNIT CENTRADO
     st.markdown('<div class="header-container">', unsafe_allow_html=True)
     izq, logo_centro, der = st.columns([1.5, 2, 1.5])
     with logo_centro:
-        # Usamos use_container_width=True aquí para que el logo se ajuste 
-        # a la columna central (que es más estrecha), manteniendo la nitidez.
-        st.image("Elementia.png", use_container_width=True)
+        # Logo en tamaño original para evitar pixeleado
+        st.image("logo-eternit-400x150-1.png", use_container_width=False)
     st.markdown('</div>', unsafe_allow_html=True)
 
     # BARRA DECORATIVA (Gris con borde rojo)
