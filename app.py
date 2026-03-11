@@ -1,6 +1,6 @@
 import streamlit as st
 
-# 1. CONFIGURACIÓN DE SEGURIDAD
+# 1. CONFIGURACIÓN DE SEGURIDAD Y PÁGINA
 USUARIO_CORRECTO = "DUVANCRUZ190@GMAIL.COM"
 CLAVE_CORRECTA = "Du854872*"
 
@@ -12,76 +12,96 @@ def login():
         st.session_state.autenticado = False
 
     if not st.session_state.autenticado:
-        col1, col2, col3 = st.columns([1, 2, 1])
+        # Estilos específicos para la pantalla de Login con diseño limpio y sutil
+        st.markdown("""
+            <style>
+            .login-container {
+                background-color: #ffffff;
+                padding: 40px;
+                border-radius: 15px;
+                border-top: 10px solid #E30613;
+                text-align: center;
+                box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+                margin-top: 50px;
+            }
+            .stButton>button {
+                width: 100%;
+                background-color: #E30613;
+                color: white;
+                font-weight: bold;
+                border: none;
+                padding: 10px;
+                border-radius: 5px;
+            }
+            .stButton>button:hover {
+                background-color: #b3050f;
+                color: white;
+            }
+            </style>
+        """, unsafe_allow_html=True)
+
+        col1, col2, col3 = st.columns([1, 1.2, 1])
+        
         with col2:
-            # Contenedor con la imagen real en lugar de texto
-            st.markdown(f"""
-                <div style="background-color: #E0E0E0; padding: 20px; border-radius: 15px; border-top: 8px solid #E30613; text-align: center;">
-                </div>
-            """, unsafe_allow_html=True)
+            st.markdown('<div class="login-container">', unsafe_allow_html=True)
+            # Logo en tamaño original y centrado para sutileza
+            st.image("logo-eternit-400x150-1.png", width=250)
+            st.markdown('<h2 style="color: #1A3A5A; margin-bottom: 25px; font-family: sans-serif;">SISTEMA DE PICKING</h2>', unsafe_allow_html=True)
             
-            # Insertamos la imagen justo debajo del borde rojo
-            # Ajustamos el ancho para que se vea bien dentro del cuadro
-            st.image("logo-eternit-400x150-1.png", use_container_width=True)
+            usuario = st.text_input("Correo electrónico", placeholder="usuario@ejemplo.com").upper()
+            clave = st.text_input("Contraseña", type="password", placeholder="••••••••")
             
-            st.markdown("""
-                <div style="text-align: center; margin-top: -10px; padding-bottom: 20px;">
-                    <p style="color: #1A3A5A; font-weight: bold; font-family: sans-serif;">SISTEMA DE PICKING</p>
-                </div>
-            """, unsafe_allow_html=True)
-            
-            st.subheader("Inicie sesión para continuar")
-            usuario = st.text_input("Correo electrónico").upper()
-            clave = st.text_input("Contraseña", type="password")
-            
-            if st.button("Ingresar"):
+            if st.button("Ingresar al Sistema"):
                 if usuario == USUARIO_CORRECTO and clave == CLAVE_CORRECTA:
                     st.session_state.autenticado = True
                     st.rerun()
                 else:
-                    st.error("Correo o contraseña incorrectos")
+                    st.error("Credenciales incorrectas. Intente de nuevo.")
+            st.markdown('</div>', unsafe_allow_html=True)
         return False
     return True
 
 if login():
-    # 2. ESTILOS CSS (LOGOS, BARRA Y CAMIÓN)
+    # 2. ESTILOS CSS PARA EL PANEL PRINCIPAL
     st.markdown("""
     <style>
-        /* Contenedor blanco para el encabezado */
+        /* Contenedor del encabezado */
         .header-container {
-            background-color: white;
-            padding: 10px 0px;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
+            padding: 10px 0;
+            background-color: white;
         }
         
-        /* Barra decorativa gris delgada con borde rojo inferior */
+        /* Barra decorativa gris con borde inferior rojo */
         .decor-bar {
-            background-color: #EEEEEE; 
-            border-bottom: 5px solid #E30613; 
-            height: 30px; 
+            background-color: #F2F2F2; 
+            border-bottom: 6px solid #E30613; 
+            height: 12px; 
             width: 100%;
-            border-radius: 5px;
-            margin-bottom: 10px;
+            margin: 10px 0 25px 0;
+            border-radius: 3px;
         }
 
-        /* Centrado del título principal */
         .main-title {
             text-align: center;
             color: #1A3A5A;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin-bottom: 30px;
+            font-weight: 800;
+            margin-bottom: 5px;
         }
 
+        /* Estilos del Camión (Tu lógica original intacta) */
         .cabina {
             background: #1A3A5A;
             color: white;
             text-align: center;
             padding: 15px;
             font-weight: bold;
-            border-radius: 10px 10px 0 0;
-            text-transform: uppercase;
+            border-radius: 12px 12px 0 0;
+            letter-spacing: 2px;
+            margin-bottom: 10px;
         }
         .celda {
             background: #27ae60;
@@ -89,43 +109,43 @@ if login():
             text-align: center;
             padding: 12px;
             margin: 4px;
-            border-radius: 6px;
+            border-radius: 8px;
             font-weight: bold;
+            box-shadow: 1px 1px 3px rgba(0,0,0,0.1);
         }
         .saldo {
             background: #f1c40f;
             color: black;
             padding: 12px;
             margin: 4px;
-            border-radius: 6px;
+            border-radius: 8px;
             text-align: center;
             font-weight: bold;
+            box-shadow: 1px 1px 3px rgba(0,0,0,0.1);
         }
     </style>
     """, unsafe_allow_html=True)
 
-    # 3. ENCABEZADO: LOGO DE ETERNIT CENTRADO (Ya lo tenías bien aquí)
-    st.markdown('<div class="header-container">', unsafe_allow_html=True)
-    izq, logo_centro, der = st.columns([1.5, 2, 1.5])
-    with logo_centro:
-        st.image("logo-eternit-400x150-1.png", use_container_width=False)
-    st.markdown('</div>', unsafe_allow_html=True)
-
-    # BARRA DECORATIVA (Gris con borde rojo)
+    # 3. ENCABEZADO PRINCIPAL CON LOGO CENTRADO (Nitidez original)
+    col_l, col_c, col_r = st.columns([1, 2, 1])
+    with col_c:
+        # Usamos use_container_width=True aquí para que el logo se ajuste 
+        # a la columna central (que es más estrecha), manteniendo la nitidez.
+        st.image("logo-eternit-400x150-1.png", use_container_width=True)
+    
     st.markdown('<div class="decor-bar"></div>', unsafe_allow_html=True)
-
-    # NUEVO TÍTULO CENTRADO
     st.markdown('<h1 class="main-title">🚛 Smart Picking & Logistic Guide</h1>', unsafe_allow_html=True)
 
-    # 4. SIDEBAR Y LÓGICA DE CARGA
+    # 4. SIDEBAR Y ENTRADA DE DATOS
     with st.sidebar:
-        st.header("Entrada de Datos")
-        pedido_raw = st.text_input("Ingrese cantidad de Teja de # 4", value="0")
-        if st.sidebar.button("Cerrar Sesión"):
+        st.header("⚙️ Panel de Control")
+        pedido_raw = st.text_input("Cantidad de Teja # 4", value="0")
+        st.markdown("---")
+        if st.button("Cerrar Sesión"):
             st.session_state.autenticado = False
             st.rerun()
     
-    # Parámetros técnicos para Teja #4
+    # --- Cálculos y Distribución (Tu lógica original intacta) ---
     cantidad = int(pedido_raw) if pedido_raw.isdigit() else 0
     PAQUETE = 130
     MAX_PAQUETES = 20
@@ -133,49 +153,47 @@ if login():
     CAPACIDAD_TOTAL = (MAX_PAQUETES * PAQUETE) + (20 * MAX_SALDO_UNIDAD)
 
     if cantidad > CAPACIDAD_TOTAL:
-        st.error(f"⚠️ El pedido excede la capacidad ({CAPACIDAD_TOTAL} unidades).")
-        st.stop()
+        st.error(f"⚠️ Capacidad excedida. Máximo permitido: {CAPACIDAD_TOTAL} unidades.")
+    else:
+        paquetes_ok = min(cantidad // PAQUETE, MAX_PAQUETES)
+        sobrante = cantidad - (paquetes_ok * PAQUETE)
+        saldos_lista = []
+        while sobrante > 0:
+            if sobrante >= MAX_SALDO_UNIDAD:
+                saldos_lista.append(MAX_SALDO_UNIDAD)
+                sobrante -= MAX_SALDO_UNIDAD
+            else:
+                saldos_lista.append(sobrante)
+                sobrante = 0
 
-    # Cálculos de distribución
-    paquetes_ok = min(cantidad // PAQUETE, MAX_PAQUETES)
-    sobrante = cantidad - (paquetes_ok * PAQUETE)
-    saldos_lista = []
-    while sobrante > 0:
-        if sobrante >= MAX_SALDO_UNIDAD:
-            saldos_lista.append(MAX_SALDO_UNIDAD)
-            sobrante -= MAX_SALDO_UNIDAD
-        else:
-            saldos_lista.append(sobrante)
-            sobrante = 0
+        s_izq = [s for i, s in enumerate(saldos_lista) if i % 2 == 0]
+        s_der = [s for i, s in enumerate(saldos_lista) if i % 2 != 0]
+        p_izq = paquetes_ok // 2 + paquetes_ok % 2
+        p_der = paquetes_ok // 2
 
-    s_izq = [s for i, s in enumerate(saldos_lista) if i % 2 == 0]
-    s_der = [s for i, s in enumerate(saldos_lista) if i % 2 != 0]
-    p_izq = paquetes_ok // 2 + paquetes_ok % 2
-    p_der = paquetes_ok // 2
+        # 5. DISTRIBUCIÓN VISUAL DEL CAMIÓN
+        col_camion, col_resumen = st.columns([3, 1])
 
-    # 5. DISTRIBUCIÓN VISUAL DEL CAMIÓN
-    col_izq, col_der = st.columns([3, 1])
+        with col_camion:
+            st.markdown('<div class="cabina">FRENTE DEL VEHÍCULO (CABINA)</div>', unsafe_allow_html=True)
+            for i in range(10):
+                r1, r2, r3, r4 = st.columns([1, 1, 1, 1])
+                with r1:
+                    val = s_izq[i] if i < len(s_izq) else ""
+                    st.markdown(f'<div class="saldo">{val}</div>', unsafe_allow_html=True)
+                with r2:
+                    val = "130" if i < p_izq else ""
+                    st.markdown(f'<div class="celda">{val}</div>', unsafe_allow_html=True)
+                with r3:
+                    val = "130" if i < p_der else ""
+                    st.markdown(f'<div class="celda">{val}</div>', unsafe_allow_html=True)
+                with r4:
+                    val = s_der[i] if i < len(s_der) else ""
+                    st.markdown(f'<div class="saldo">{val}</div>', unsafe_allow_html=True)
 
-    with col_izq:
-        st.markdown('<div class="cabina">FRENTE DEL VEHÍCULO (CABINA)</div>', unsafe_allow_html=True)
-        for i in range(10):
-            r1, r2, r3, r4 = st.columns([1, 1, 1, 1])
-            with r1:
-                val = s_izq[i] if i < len(s_izq) else ""
-                st.markdown(f'<div class="saldo">{val}</div>', unsafe_allow_html=True)
-            with r2:
-                val = "130" if i < p_izq else ""
-                st.markdown(f'<div class="celda">{val}</div>', unsafe_allow_html=True)
-            with r3:
-                val = "130" if i < p_der else ""
-                st.markdown(f'<div class="celda">{val}</div>', unsafe_allow_html=True)
-            with r4:
-                val = s_der[i] if i < len(s_der) else ""
-                st.markdown(f'<div class="saldo">{val}</div>', unsafe_allow_html=True)
-
-    with col_der:
-        st.subheader("📋 Resumen")
-        st.table({
-            "Detalle": ["Total Unidades", "Paquetes (130)", "Saldos"],
-            "Valor": [cantidad, paquetes_ok, len(saldos_lista)]
-        })
+        with col_resumen:
+            st.subheader("📋 Resumen")
+            st.table({
+                "Detalle": ["Total Unidades", "Paquetes (130)", "Saldos Sueltos"],
+                "Valor": [cantidad, paquetes_ok, len(saldos_lista)]
+            })
