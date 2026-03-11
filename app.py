@@ -14,10 +14,19 @@ def login():
     if not st.session_state.autenticado:
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
+            # Contenedor con la imagen real en lugar de texto
             st.markdown(f"""
-                <div style="background-color: #E0E0E0; padding: 30px; border-radius: 15px; border-top: 8px solid #E30613; text-align: center;">
-                    <h1 style="color: #E30613; margin-bottom: 0; font-family: Arial Black;">ETERNIT</h1>
-                    <p style="color: #1A3A5A; font-weight: bold;">SISTEMA DE PICKING</p>
+                <div style="background-color: #E0E0E0; padding: 20px; border-radius: 15px; border-top: 8px solid #E30613; text-align: center;">
+                </div>
+            """, unsafe_allow_html=True)
+            
+            # Insertamos la imagen justo debajo del borde rojo
+            # Ajustamos el ancho para que se vea bien dentro del cuadro
+            st.image("logo-eternit-400x150-1.png", use_container_width=True)
+            
+            st.markdown("""
+                <div style="text-align: center; margin-top: -10px; padding-bottom: 20px;">
+                    <p style="color: #1A3A5A; font-weight: bold; font-family: sans-serif;">SISTEMA DE PICKING</p>
                 </div>
             """, unsafe_allow_html=True)
             
@@ -95,11 +104,10 @@ if login():
     </style>
     """, unsafe_allow_html=True)
 
-    # 3. ENCABEZADO: LOGO DE ETERNIT CENTRADO
+    # 3. ENCABEZADO: LOGO DE ETERNIT CENTRADO (Ya lo tenías bien aquí)
     st.markdown('<div class="header-container">', unsafe_allow_html=True)
     izq, logo_centro, der = st.columns([1.5, 2, 1.5])
     with logo_centro:
-        # Logo en tamaño original para evitar pixeleado
         st.image("logo-eternit-400x150-1.png", use_container_width=False)
     st.markdown('</div>', unsafe_allow_html=True)
 
