@@ -8,38 +8,38 @@ st.set_page_config(page_title="Sistema de Cargue Eternit - Teja #4", layout="wid
 # -----------------------
 st.markdown("""
 <style>
-    /* Encabezado con fondo gris como la imagen */
+    /* Encabezado con fondo gris más oscuro y letras del mismo tamaño */
     .custom-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 20px 50px;
-        background-color: #F2F2F2; /* Gris claro de fondo */
+        padding: 25px 50px;
+        background-color: #E0E0E0; /* Gris más intenso */
         border-bottom: 8px solid #E30613; /* Línea roja inferior */
-        border-radius: 12px 12px 0px 0px;
+        border-radius: 12px;
         margin-bottom: 30px;
-        box-shadow: 0px 4px 10px rgba(0,0,0,0.1);
+        box-shadow: 0px 4px 12px rgba(0,0,0,0.15);
     }
     
     .brand-eternit {
         color: #E30613; /* Rojo Eternit */
-        font-size: 48px;
+        font-size: 45px; /* Tamaño igualado */
         font-weight: 900;
         font-family: 'Arial Black', Gadget, sans-serif;
         letter-spacing: -1px;
     }
     
     .brand-elementia {
-        color: #2C3E50; /* Azul oscuro Elementia */
-        font-size: 30px;
-        font-weight: bold;
-        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-        letter-spacing: 1px;
+        color: #1A3A5A; /* Azul oscuro Elementia */
+        font-size: 45px; /* Tamaño igualado */
+        font-weight: 900;
+        font-family: 'Arial Black', Gadget, sans-serif;
+        letter-spacing: -1px;
     }
 
     /* Estilos del Camión */
     .cabina {
-        background: #2C3E50;
+        background: #1A3A5A;
         color: white;
         text-align: center;
         padding: 15px;
@@ -74,7 +74,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # -----------------------
-# ENCABEZADO ESTILIZADO (IGUAL A LA IMAGEN)
+# ENCABEZADO ESTILIZADO
 # -----------------------
 st.markdown("""
 <div class="custom-header">
@@ -91,7 +91,6 @@ st.title("🚛 Picking de Producto: Teja de # 4")
 with st.sidebar:
     st.header("Entrada de Datos")
     st.write("---")
-    # Campo específico: Teja de # 4
     pedido_raw = st.text_input("Ingrese cantidad de Teja de # 4", value="0")
     
     cantidad = 0
@@ -116,7 +115,6 @@ if cantidad > CAPACIDAD_TOTAL:
     st.error(f"⚠️ El pedido excede la capacidad máxima ({CAPACIDAD_TOTAL} unidades).")
     st.stop()
 
-# Cálculos
 paquetes_ok = min(cantidad // PAQUETE, MAX_PAQUETES)
 sobrante = cantidad - (paquetes_ok * PAQUETE)
 
@@ -140,9 +138,8 @@ p_der = paquetes_ok // 2
 col_izq, col_der = st.columns([3, 1])
 
 with col_izq:
-    st.markdown('<div class="cabina">VISTA SUPERIOR: FRENTE DEL VEHÍCULO</div>', unsafe_allow_html=True)
+    st.markdown('<div class="cabina">FRENTE DEL VEHÍCULO (CABINA)</div>', unsafe_allow_html=True)
     
-    # Cabeceras de columna
     h1, h2, h3, h4 = st.columns([1,1,1,1])
     h1.caption("Saldo Izq")
     h2.caption("Paquetes (130)")
@@ -166,13 +163,10 @@ with col_izq:
             st.markdown(f'<div class="saldo">{val}</div>', unsafe_allow_html=True)
 
 with col_der:
-    st.subheader("📋 Resumen de Carga")
+    st.subheader("📋 Resumen")
     st.info(f"**Material:** Teja de # 4")
     
     st.table({
-        "Detalle": ["Total Unidades", "Cant. Paquetes", "Cant. Saldos", "Espacio Libre"],
+        "Detalle": ["Total Unidades", "Paquetes", "Saldos", "Espacio Libre"],
         "Valor": [cantidad, paquetes_ok, len(saldos_lista), CAPACIDAD_TOTAL - cantidad]
     })
-    
-    if cantidad > 0:
-        st.success("Distribución calculada correctamente.")
