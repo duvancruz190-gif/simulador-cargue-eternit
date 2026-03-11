@@ -1,5 +1,4 @@
 import streamlit as st
-import re
 
 # 1. CONFIGURACIÓN DE SEGURIDAD
 USUARIO_CORRECTO = "DUVANCRUZ190@GMAIL.COM"
@@ -11,6 +10,7 @@ st.set_page_config(page_title="Smart Picking & Logistic Guide", layout="wide")
 def login():
     if "autenticado" not in st.session_state:
         st.session_state.autenticado = False
+
     if not st.session_state.autenticado:
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
@@ -20,122 +20,154 @@ def login():
                     <p style="color: #1A3A5A; font-weight: bold;">SISTEMA DE PICKING</p>
                 </div>
             """, unsafe_allow_html=True)
+            
+            st.subheader("Inicie sesión para continuar")
             usuario = st.text_input("Correo electrónico").upper()
             clave = st.text_input("Contraseña", type="password")
+            
             if st.button("Ingresar"):
                 if usuario == USUARIO_CORRECTO and clave == CLAVE_CORRECTA:
                     st.session_state.autenticado = True
                     st.rerun()
                 else:
-                    st.error("Credenciales incorrectas")
+                    st.error("Correo o contraseña incorrectos")
         return False
     return True
 
 if login():
-    # 2. ESTILOS CSS
+    # 2. ESTILOS CSS (LOGOS, BARRA Y CAMIÓN)
     st.markdown("""
     <style>
-        .header-container { background-color: white; padding: 10px 0px; display: flex; justify-content: center; align-items: center; }
-        .decor-bar { background-color: #EEEEEE; border-bottom: 5px solid #E30613; height: 30px; width: 100%; border-radius: 5px; margin-bottom: 10px; }
-        .main-title { text-align: center; color: #1A3A5A; font-family: sans-serif; margin-bottom: 30px; }
-        .cabina { background: #1A3A5A; color: white; text-align: center; padding: 15px; font-weight: bold; border-radius: 10px 10px 0 0; }
-        .celda { background: #27ae60; color: white; text-align: center; padding: 12px; margin: 4px; border-radius: 6px; font-weight: bold; }
-        .saldo { background: #f1c40f; color: black; padding: 12px; margin: 4px; border-radius: 6px; text-align: center; font-weight: bold; }
-        .info-box { background-color: #f8f9fa; padding: 15px; border-left: 5px solid #1A3A5A; border-radius: 5px; }
+        /* Contenedor blanco para el encabezado */
+        .header-container {
+            background-color: white;
+            padding: 10px 0px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        /* Barra decorativa gris delgada con borde rojo inferior */
+        .decor-bar {
+            background-color: #EEEEEE; 
+            border-bottom: 5px solid #E30613; 
+            height: 30px; 
+            width: 100%;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+
+        /* Centrado del título principal */
+        .main-title {
+            text-align: center;
+            color: #1A3A5A;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin-bottom: 30px;
+        }
+
+        .cabina {
+            background: #1A3A5A;
+            color: white;
+            text-align: center;
+            padding: 15px;
+            font-weight: bold;
+            border-radius: 10px 10px 0 0;
+            text-transform: uppercase;
+        }
+        .celda {
+            background: #27ae60;
+            color: white;
+            text-align: center;
+            padding: 12px;
+            margin: 4px;
+            border-radius: 6px;
+            font-weight: bold;
+        }
+        .saldo {
+            background: #f1c40f;
+            color: black;
+            padding: 12px;
+            margin: 4px;
+            border-radius: 6px;
+            text-align: center;
+            font-weight: bold;
+        }
     </style>
     """, unsafe_allow_html=True)
 
-    # 3. ENCABEZADO
+    # 3. ENCABEZADO: LOGO DE ETERNIT CENTRADO
     st.markdown('<div class="header-container">', unsafe_allow_html=True)
     izq, logo_centro, der = st.columns([1.5, 2, 1.5])
     with logo_centro:
+        # Logo en tamaño original para evitar pixeleado
         st.image("logo-eternit-400x150-1.png", use_container_width=False)
     st.markdown('</div>', unsafe_allow_html=True)
+
+    # BARRA DECORATIVA (Gris con borde rojo)
     st.markdown('<div class="decor-bar"></div>', unsafe_allow_html=True)
+
+    # NUEVO TÍTULO CENTRADO
     st.markdown('<h1 class="main-title">🚛 Smart Picking & Logistic Guide</h1>', unsafe_allow_html=True)
 
-    # 4. PROCESADOR DE TEXTO (PARSER) EN SIDEBAR
+    # 4. SIDEBAR Y LÓGICA DE CARGA
     with st.sidebar:
-        st.header("📥 Entrada de Datos")
-        texto_pegado = st.text_area("Pegue aquí los datos del pedido:", 
-                                   placeholder="Ej: 1321786 TEJA FLEXIFORTE #6 VILLAPINZON 3300 unidades 100 ton",
-                                   height=150)
-        
-        # Variables por defecto
-        codigo, material, zona, unidades, tonelaje = "---", "---", "---", 0, "0"
-
-        if texto_pegado:
-            # Lógica para extraer números y palabras
-            numeros = re.findall(r'\d+', texto_pegado)
-            if len(numeros) >= 2:
-                codigo = numeros[0]
-                unidades = int(numeros[-2]) # Penúltimo número suele ser cantidad
-                tonelaje = numeros[-1]      # Último número suele ser peso
-            
-            # Intentar extraer descripción (Texto entre código y unidades)
-            palabras = texto_pegado.split()
-            if len(palabras) > 2:
-                material = " ".join(palabras[1:4]) # Toma las primeras palabras tras el código
-                zona = palabras[4] if len(palabras) > 4 else "No detectada"
-
-        st.write("---")
-        if st.button("Cerrar Sesión"):
+        st.header("Entrada de Datos")
+        pedido_raw = st.text_input("Ingrese cantidad de Teja de # 4", value="0")
+        if st.sidebar.button("Cerrar Sesión"):
             st.session_state.autenticado = False
             st.rerun()
-
-    # 5. TABLAS DE INFORMACIÓN (Lo que pediste)
-    col_info1, col_info2 = st.columns([1, 1])
     
-    with col_info1:
-        st.subheader("📋 Registro Plano")
-        # Tabla en blanco con el formato pegado
-        st.markdown(f"""
-        <div style="background-color: white; border: 1px solid #ddd; padding: 15px; font-family: monospace; font-size: 18px;">
-            {codigo} | {material} | {zona} | {unidades} UNID | {tonelaje} TON
-        </div>
-        """, unsafe_allow_html=True)
-
-    with col_info2:
-        st.subheader("🔍 Desglose de Carga")
-        # Tabla segregada a la izquierda
-        st.markdown(f"""
-        <div class="info-box">
-            <p><b>Código:</b> {codigo}</p>
-            <p><b>Material:</b> {material}</p>
-            <p><b>Zona:</b> {zona}</p>
-            <p><b>Cantidad:</b> {unidades} Unidades</p>
-            <p><b>Tonelaje:</b> {tonelaje} Toneladas</p>
-        </div>
-        """, unsafe_allow_html=True)
-
-    st.write("---")
-
-    # 6. LÓGICA DE DISTRIBUCIÓN (MULA)
+    # Parámetros técnicos para Teja #4
+    cantidad = int(pedido_raw) if pedido_raw.isdigit() else 0
     PAQUETE = 130
     MAX_PAQUETES = 20
     MAX_SALDO_UNIDAD = 60
     CAPACIDAD_TOTAL = (MAX_PAQUETES * PAQUETE) + (20 * MAX_SALDO_UNIDAD)
 
-    if unidades > CAPACIDAD_TOTAL:
-        st.error(f"⚠️ El pedido de {unidades} unidades excede la capacidad.")
-    else:
-        paquetes_ok = min(unidades // PAQUETE, MAX_PAQUETES)
-        sobrante = unidades - (paquetes_ok * PAQUETE)
-        saldos_lista = []
-        while sobrante > 0:
-            if sobrante >= MAX_SALDO_UNIDAD:
-                saldos_lista.append(MAX_SALDO_UNIDAD); sobrante -= MAX_SALDO_UNIDAD
-            else:
-                saldos_lista.append(sobrante); sobrante = 0
+    if cantidad > CAPACIDAD_TOTAL:
+        st.error(f"⚠️ El pedido excede la capacidad ({CAPACIDAD_TOTAL} unidades).")
+        st.stop()
 
-        s_izq, s_der = saldos_lista[0::2], saldos_lista[1::2]
-        p_izq, p_der = paquetes_ok // 2 + paquetes_ok % 2, paquetes_ok // 2
+    # Cálculos de distribución
+    paquetes_ok = min(cantidad // PAQUETE, MAX_PAQUETES)
+    sobrante = cantidad - (paquetes_ok * PAQUETE)
+    saldos_lista = []
+    while sobrante > 0:
+        if sobrante >= MAX_SALDO_UNIDAD:
+            saldos_lista.append(MAX_SALDO_UNIDAD)
+            sobrante -= MAX_SALDO_UNIDAD
+        else:
+            saldos_lista.append(sobrante)
+            sobrante = 0
 
-        # Gráfico del camión
+    s_izq = [s for i, s in enumerate(saldos_lista) if i % 2 == 0]
+    s_der = [s for i, s in enumerate(saldos_lista) if i % 2 != 0]
+    p_izq = paquetes_ok // 2 + paquetes_ok % 2
+    p_der = paquetes_ok // 2
+
+    # 5. DISTRIBUCIÓN VISUAL DEL CAMIÓN
+    col_izq, col_der = st.columns([3, 1])
+
+    with col_izq:
         st.markdown('<div class="cabina">FRENTE DEL VEHÍCULO (CABINA)</div>', unsafe_allow_html=True)
         for i in range(10):
             r1, r2, r3, r4 = st.columns([1, 1, 1, 1])
-            with r1: st.markdown(f'<div class="saldo">{s_izq[i] if i < len(s_izq) else ""}</div>', unsafe_allow_html=True)
-            with r2: st.markdown(f'<div class="celda">{"130" if i < p_izq else ""}</div>', unsafe_allow_html=True)
-            with r3: st.markdown(f'<div class="celda">{"130" if i < p_der else ""}</div>', unsafe_allow_html=True)
-            with r4: st.markdown(f'<div class="saldo">{s_der[i] if i < len(s_der) else ""}</div>', unsafe_allow_html=True)
+            with r1:
+                val = s_izq[i] if i < len(s_izq) else ""
+                st.markdown(f'<div class="saldo">{val}</div>', unsafe_allow_html=True)
+            with r2:
+                val = "130" if i < p_izq else ""
+                st.markdown(f'<div class="celda">{val}</div>', unsafe_allow_html=True)
+            with r3:
+                val = "130" if i < p_der else ""
+                st.markdown(f'<div class="celda">{val}</div>', unsafe_allow_html=True)
+            with r4:
+                val = s_der[i] if i < len(s_der) else ""
+                st.markdown(f'<div class="saldo">{val}</div>', unsafe_allow_html=True)
+
+    with col_der:
+        st.subheader("📋 Resumen")
+        st.table({
+            "Detalle": ["Total Unidades", "Paquetes (130)", "Saldos"],
+            "Valor": [cantidad, paquetes_ok, len(saldos_lista)]
+        })
