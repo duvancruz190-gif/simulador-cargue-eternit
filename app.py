@@ -38,12 +38,12 @@ if login():
     # 2. ESTILOS CSS (LOGOS, BARRA Y CAMIÓN)
     st.markdown("""
     <style>
-        /* Contenedor para centrar logos */
+        /* Contenedor blanco para el encabezado */
         .header-container {
             background-color: white;
             padding: 10px 0px;
             display: flex;
-            justify-content: center;
+            justify-content: center; /* Centrado horizontal de la columna */
             align-items: center;
         }
         
@@ -87,18 +87,15 @@ if login():
     </style>
     """, unsafe_allow_html=True)
 
-    # 3. ENCABEZADO: LOGOS CENTRADOS (TAMAÑO ORIGINAL)
-    # Usamos columnas laterales para empujar los logos al centro
+    # 3. ENCABEZADO: LOGO DE ETERNIT CENTRADO (TAMAÑO ORIGINAL)
+    # Usamos columnas laterales más anchas [1.5] para empujar el logo al centro [2]
     st.markdown('<div class="header-container">', unsafe_allow_html=True)
-    izq, logo1, logo2, der = st.columns([0.8, 2, 2, 0.8])
+    izq, logo1, der = st.columns([1.5, 2, 1.5])
     
     with logo1:
-        # Se usa el nombre exacto de tu archivo en GitHub
+        # Se usa el nombre exacto de tu archivo en GitHub, Elementia ha sido eliminado
         st.image("logo-eternit-400x150-1.png", use_container_width=False)
 
-    with logo2:
-        # Se usa el nombre exacto de tu archivo en GitHub
-        st.image("Elementia.png", use_container_width=False)
     st.markdown('</div>', unsafe_allow_html=True)
 
     # BARRA DECORATIVA (Gris con borde rojo)
