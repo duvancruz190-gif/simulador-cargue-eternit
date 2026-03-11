@@ -1,173 +1,62 @@
-import streamlit as st
+# ... (mantienes tu login y CSS igual)
 
-# 1. CONFIGURACIÓN DE SEGURIDAD
-USUARIO_CORRECTO = "DUVANCRUZ190@GMAIL.COM"
-CLAVE_CORRECTA = "Du854872*"
-
-st.set_page_config(page_title="Smart Picking & Logistic Guide", layout="wide")
-
-# Función de Validación de Acceso
-def login():
-    if "autenticado" not in st.session_state:
-        st.session_state.autenticado = False
-
-    if not st.session_state.autenticado:
-        col1, col2, col3 = st.columns([1, 2, 1])
-        with col2:
-            st.markdown(f"""
-                <div style="background-color: #E0E0E0; padding: 30px; border-radius: 15px; border-top: 8px solid #E30613; text-align: center;">
-                    <h1 style="color: #E30613; margin-bottom: 0; font-family: Arial Black;">ETERNIT</h1>
-                    <p style="color: #1A3A5A; font-weight: bold;">SISTEMA DE PICKING</p>
-                </div>
-            """, unsafe_allow_html=True)
-            
-            st.subheader("Inicie sesión para continuar")
-            usuario = st.text_input("Correo electrónico").upper()
-            clave = st.text_input("Contraseña", type="password")
-            
-            if st.button("Ingresar"):
-                if usuario == USUARIO_CORRECTO and clave == CLAVE_CORRECTA:
-                    st.session_state.autenticado = True
-                    st.rerun()
-                else:
-                    st.error("Correo o contraseña incorrectos")
-        return False
-    return True
-
-if login():
-    # 2. ESTILOS CSS (LOGOS, BARRA Y CAMIÓN)
-    st.markdown("""
-    <style>
-        /* Contenedor blanco para el encabezado */
-        .header-container {
-            background-color: white;
-            padding: 10px 0px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        
-        /* Barra decorativa gris delgada con borde rojo inferior */
-        .decor-bar {
-            background-color: #EEEEEE; 
-            border-bottom: 5px solid #E30613; 
-            height: 30px; 
-            width: 100%;
-            border-radius: 5px;
-            margin-bottom: 10px;
-        }
-
-        /* Centrado del título principal */
-        .main-title {
-            text-align: center;
-            color: #1A3A5A;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin-bottom: 30px;
-        }
-
-        .cabina {
-            background: #1A3A5A;
-            color: white;
-            text-align: center;
-            padding: 15px;
-            font-weight: bold;
-            border-radius: 10px 10px 0 0;
-            text-transform: uppercase;
-        }
-        .celda {
-            background: #27ae60;
-            color: white;
-            text-align: center;
-            padding: 12px;
-            margin: 4px;
-            border-radius: 6px;
-            font-weight: bold;
-        }
-        .saldo {
-            background: #f1c40f;
-            color: black;
-            padding: 12px;
-            margin: 4px;
-            border-radius: 6px;
-            text-align: center;
-            font-weight: bold;
-        }
-    </style>
-    """, unsafe_allow_html=True)
-
-    # 3. ENCABEZADO: LOGO DE ETERNIT CENTRADO
-    st.markdown('<div class="header-container">', unsafe_allow_html=True)
-    izq, logo_centro, der = st.columns([1.5, 2, 1.5])
-    with logo_centro:
-        # Logo en tamaño original para evitar pixeleado
-        st.image("logo-eternit-400x150-1.png", use_container_width=False)
-    st.markdown('</div>', unsafe_allow_html=True)
-
-    # BARRA DECORATIVA (Gris con borde rojo)
-    st.markdown('<div class="decor-bar"></div>', unsafe_allow_html=True)
-
-    # NUEVO TÍTULO CENTRADO
-    st.markdown('<h1 class="main-title">🚛 Smart Picking & Logistic Guide</h1>', unsafe_allow_html=True)
-
-    # 4. SIDEBAR Y LÓGICA DE CARGA
-    with st.sidebar:
-        st.header("Entrada de Datos")
-        pedido_raw = st.text_input("Ingrese cantidad de Teja de # 4", value="0")
-        if st.sidebar.button("Cerrar Sesión"):
-            st.session_state.autenticado = False
-            st.rerun()
+# 4. LÓGICA DE CARGA OPTIMIZADA
+with st.sidebar:
+    st.header("📦 Entrada de Datos")
+    # Usamos number_input para evitar errores de conversión de texto a int
+    cantidad = st.number_input("Cantidad de Teja #4", min_value=0, step=1, value=0)
     
-    # Parámetros técnicos para Teja #4
-    cantidad = int(pedido_raw) if pedido_raw.isdigit() else 0
-    PAQUETE = 130
-    MAX_PAQUETES = 20
-    MAX_SALDO_UNIDAD = 60
-    CAPACIDAD_TOTAL = (MAX_PAQUETES * PAQUETE) + (20 * MAX_SALDO_UNIDAD)
+    if st.sidebar.button("Cerrar Sesión"):
+        st.session_state.autenticado = False
+        st.rerun()
 
-    if cantidad > CAPACIDAD_TOTAL:
-        st.error(f"⚠️ El pedido excede la capacidad ({CAPACIDAD_TOTAL} unidades).")
-        st.stop()
+# Constantes
+PAQUETE = 130
+MAX_PAQUETES = 20
+MAX_SALDO_UNIDAD = 60
+CAPACIDAD_TOTAL = (MAX_PAQUETES * PAQUETE) + (20 * MAX_SALDO_UNIDAD)
 
-    # Cálculos de distribución
-    paquetes_ok = min(cantidad // PAQUETE, MAX_PAQUETES)
-    sobrante = cantidad - (paquetes_ok * PAQUETE)
-    saldos_lista = []
-    while sobrante > 0:
-        if sobrante >= MAX_SALDO_UNIDAD:
-            saldos_lista.append(MAX_SALDO_UNIDAD)
-            sobrante -= MAX_SALDO_UNIDAD
-        else:
-            saldos_lista.append(sobrante)
-            sobrante = 0
+if cantidad > CAPACIDAD_TOTAL:
+    st.error(f"⚠️ El pedido ({cantidad}) excede la capacidad máxima de {CAPACIDAD_TOTAL} unidades.")
+    st.stop()
 
-    s_izq = [s for i, s in enumerate(saldos_lista) if i % 2 == 0]
-    s_der = [s for i, s in enumerate(saldos_lista) if i % 2 != 0]
-    p_izq = paquetes_ok // 2 + paquetes_ok % 2
-    p_der = paquetes_ok // 2
+# Cálculos
+paquetes_totales = cantidad // PAQUETE
+sobrante_total = cantidad % PAQUETE
 
-    # 5. DISTRIBUCIÓN VISUAL DEL CAMIÓN
-    col_izq, col_der = st.columns([3, 1])
+# Distribuir sobrante en unidades de máximo 60
+saldos_lista = []
+temp_sobrante = sobrante_total
+while temp_sobrante > 0:
+    carga = min(temp_sobrante, MAX_SALDO_UNIDAD)
+    saldos_lista.append(carga)
+    temp_sobrante -= carga
 
-    with col_izq:
-        st.markdown('<div class="cabina">FRENTE DEL VEHÍCULO (CABINA)</div>', unsafe_allow_html=True)
-        for i in range(10):
-            r1, r2, r3, r4 = st.columns([1, 1, 1, 1])
-            with r1:
-                val = s_izq[i] if i < len(s_izq) else ""
-                st.markdown(f'<div class="saldo">{val}</div>', unsafe_allow_html=True)
-            with r2:
-                val = "130" if i < p_izq else ""
-                st.markdown(f'<div class="celda">{val}</div>', unsafe_allow_html=True)
-            with r3:
-                val = "130" if i < p_der else ""
-                st.markdown(f'<div class="celda">{val}</div>', unsafe_allow_html=True)
-            with r4:
-                val = s_der[i] if i < len(s_der) else ""
-                st.markdown(f'<div class="saldo">{val}</div>', unsafe_allow_html=True)
+# Separación para las 4 columnas del camión
+s_izq = saldos_lista[::2]  # Pares
+s_der = saldos_lista[1::2] # Impares
+p_izq = (paquetes_totales + 1) // 2
+p_der = paquetes_totales // 2
 
-    with col_der:
-        st.subheader("📋 Resumen")
-        st.table({
-            "Detalle": ["Total Unidades", "Paquetes (130)", "Saldos"],
-            "Valor": [cantidad, paquetes_ok, len(saldos_lista)]
-        })
+# 5. RENDERIZADO DEL CAMIÓN
+st.markdown('<div class="cabina">FRENTE DEL VEHÍCULO (CABINA)</div>', unsafe_allow_html=True)
+
+# Creamos las filas (máximo 10 filas para representar el largo del camión)
+for i in range(10):
+    cols = st.columns([1, 1, 1, 1])
+    
+    # Datos de las 4 columnas: Saldo Izq | Paquete Izq | Paquete Der | Saldo Der
+    datos_fila = [
+        (s_izq[i] if i < len(s_izq) else "", "saldo"),
+        (PAQUETE if i < p_izq else "", "celda"),
+        (PAQUETE if i < p_der else "", "celda"),
+        (s_der[i] if i < len(s_der) else "", "saldo")
+    ]
+    
+    for col, (valor, estilo) in zip(cols, datos_fila):
+        with col:
+            if valor != "":
+                st.markdown(f'<div class="{estilo}">{valor}</div>', unsafe_allow_html=True)
+            else:
+                # Espacio vacío estético
+                st.markdown('<div style="height: 45px;"></div>', unsafe_allow_html=True)
