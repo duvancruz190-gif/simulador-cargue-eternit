@@ -3,7 +3,7 @@ import streamlit as st
 st.set_page_config(page_title="Sistema de Cargue Eternit - Teja #4", layout="wide")
 
 # -----------------------
-# ESTILOS
+# ESTILOS CORREGIDOS
 # -----------------------
 st.markdown("""
 <style>
@@ -11,13 +11,16 @@ st.markdown("""
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 50px;
+    gap: 80px;
     padding: 20px;
-    border-bottom: 4px solid #1B5E20;
-    margin-bottom: 20px;
+    border-bottom: 5px solid #1B5E20;
+    margin-bottom: 30px;
     background-color: white;
 }
-
+.header img {
+    max-height: 80px;
+    width: auto;
+}
 .cabina {
     background: #34495e;
     color: white;
@@ -26,9 +29,7 @@ st.markdown("""
     font-weight: bold;
     border-radius: 10px 10px 0 0;
     margin-bottom: 10px;
-    letter-spacing: 2px;
 }
-
 .celda {
     background: #27ae60;
     color: white;
@@ -37,9 +38,7 @@ st.markdown("""
     margin: 4px;
     border-radius: 6px;
     font-weight: bold;
-    border: 1px solid #1e8449;
 }
-
 .saldo {
     background: #f1c40f;
     color: black;
@@ -48,50 +47,40 @@ st.markdown("""
     border-radius: 6px;
     text-align: center;
     font-weight: bold;
-    border: 1px solid #d4ac0d;
-}
-
-.titulo-seccion {
-    font-size: 18px;
-    font-weight: bold;
-    text-align: center;
-    margin-bottom: 10px;
-    color: #1B5E20;
 }
 </style>
 """, unsafe_allow_html=True)
 
 # -----------------------
-# LOGOS (Eternit & Elementia)
+# LOGOS (URLs actualizadas para evitar errores)
 # -----------------------
+# He usado una técnica para centrar mejor y asegurar que carguen
 st.markdown("""
 <div class="header">
-    <img src="https://eternit.com.co/images/logo.png" width="200">
-    <img src="https://logowik.com/content/uploads/images/elementia5222.logowik.com.webp" width="180">
+    <img src="https://eternit.com.co/images/logo.png">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/4b/Elementia_logo.png/640px-Elementia_logo.png">
 </div>
 """, unsafe_allow_html=True)
 
-st.title("🚛 Sistema de Picking: Teja #4")
+st.title("🚛 Picking de Producto: Teja de # 4")
 
 # -----------------------
-# CONFIGURACIÓN DE PEDIDO EN SIDEBAR
+# PEDIDO (SIDEBAR)
 # -----------------------
 with st.sidebar:
-    st.header("Configuración de Carga")
-    st.info("Ingrese la cantidad total de **Teja #4** para calcular la distribución.")
+    st.header("Entrada de Datos")
+    # Cambio solicitado: Etiqueta específica
+    pedido = st.text_input("Ingrese cantidad de Teja de # 4")
     
-    # Cambio solicitado: Etiqueta específica para Teja #4
-    pedido = st.text_input("Cantidad de Teja #4", placeholder="Ej: 2800")
-
     cantidad = 0
     if pedido:
         try:
             cantidad = int(pedido.strip())
         except ValueError:
-            st.error("⚠️ Por favor, ingrese solo números.")
+            st.error("Por favor, ingrese solo números")
 
 # -----------------------
-# PARÁMETROS TÉCNICOS
+# PARÁMETROS Y LÓGICA
 # -----------------------
 PAQUETE = 130
 MAX_PAQUETES = 20
@@ -99,89 +88,63 @@ MAX_SALDOS = 20
 MAX_SALDO_UNIDAD = 60
 CAPACIDAD_TOTAL = (MAX_PAQUETES * PAQUETE) + (MAX_SALDOS * MAX_SALDO_UNIDAD)
 
-# -----------------------
-# VALIDACIÓN Y CÁLCULOS
-# -----------------------
 if cantidad > CAPACIDAD_TOTAL:
-    st.error(f"🚫 **Capacidad Excedida**: El pedido de {cantidad} tejas no cabe en el vehículo. (Máx: {CAPACIDAD_TOTAL})")
+    st.error(f"⚠️ El pedido excede la capacidad de la mula ({CAPACIDAD_TOTAL} unidades).")
     st.stop()
 
-# Cálculo de paquetes completos
-paquetes_reales = min(cantidad // PAQUETE, MAX_PAQUETES)
-resto = cantidad - (paquetes_reales * PAQUETE)
+# Cálculos
+paquetes = min(cantidad // PAQUETE, MAX_PAQUETES)
+resto = cantidad - (paquetes * PAQUETE)
 
-# Cálculo de saldos (unidades sueltas o paquetes incompletos)
 saldos = []
-temp_resto = resto
-while temp_resto > 0:
-    if temp_resto >= MAX_SALDO_UNIDAD:
+while resto > 0:
+    if resto >= MAX_SALDO_UNIDAD:
         saldos.append(MAX_SALDO_UNIDAD)
-        temp_resto -= MAX_SALDO_UNIDAD
+        resto -= MAX_SALDO_UNIDAD
     else:
-        saldos.append(temp_resto)
-        temp_resto = 0
+        saldos.append(resto)
+        resto = 0
 
-# Distribución de carga (Izquierda / Derecha)
+# Distribución
 saldo_izq = [s for i, s in enumerate(saldos) if i % 2 == 0]
 saldo_der = [s for i, s in enumerate(saldos) if i % 2 != 0]
-
-izq_paquetes = paquetes_reales // 2 + paquetes_reales % 2
-der_paquetes = paquetes_reales // 2
+izq = paquetes // 2 + paquetes % 2
+der = paquetes // 2
 
 # -----------------------
-# VISUALIZACIÓN
+# LAYOUT VISUAL
 # -----------------------
-col_grafico, col_resumen = st.columns([3, 1])
+col1, col2 = st.columns([3, 1])
 
-with col_grafico:
-    st.markdown('<div class="cabina">FRENTE DEL VEHÍCULO (CABINA)</div>', unsafe_allow_html=True)
+with col1:
+    st.markdown('<div class="cabina">CABINA / FRENTE</div>', unsafe_allow_html=True)
     
-    # Encabezados de columnas
-    c1, c2, c3, c4 = st.columns([1,1,1,1])
-    c1.markdown('<p class="titulo-seccion">Saldos Izq.</p>', unsafe_allow_html=True)
-    c2.markdown('<p class="titulo-seccion">Paquetes Izq.</p>', unsafe_allow_html=True)
-    c3.markdown('<p class="titulo-seccion">Paquetes Der.</p>', unsafe_allow_html=True)
-    c4.markdown('<p class="titulo-seccion">Saldos Der.</p>', unsafe_allow_html=True)
+    # Encabezados
+    h1, h2, h3, h4 = st.columns([1,1,1,1])
+    h1.caption("Saldo Izq")
+    h2.caption("Paquetes")
+    h3.caption("Paquetes")
+    h4.caption("Saldo Der")
 
-    # Renderizado de la cama del camión (10 filas)
     for i in range(10):
-        r1, r2, r3, r4 = st.columns([1, 1, 1, 1])
+        c1, c2, c3, c4 = st.columns([1, 1, 1, 1])
         
-        with r1: # Saldos Izquierda
+        with c1:
             val = saldo_izq[i] if i < len(saldo_izq) else ""
             st.markdown(f'<div class="saldo">{val}</div>', unsafe_allow_html=True)
-            
-        with r2: # Paquetes Izquierda
-            val = PAQUETE if i < izq_paquetes else ""
+        with c2:
+            val = "130" if i < izq else ""
             st.markdown(f'<div class="celda">{val}</div>', unsafe_allow_html=True)
-            
-        with r3: # Paquetes Derecha
-            val = PAQUETE if i < der_paquetes else ""
+        with c3:
+            val = "130" if i < der else ""
             st.markdown(f'<div class="celda">{val}</div>', unsafe_allow_html=True)
-            
-        with r4: # Saldos Derecha
+        with c4:
             val = saldo_der[i] if i < len(saldo_der) else ""
             st.markdown(f'<div class="saldo">{val}</div>', unsafe_allow_html=True)
 
-with col_resumen:
-    st.subheader("📊 Resumen de Carga")
-    st.write(f"**Material:** Teja #4")
-    
-    resumen_data = {
-        "Concepto": [
-            "Total Unidades",
-            "Paquetes de 130",
-            "Cantidad de Saldos",
-            "Espacio Disponible"
-        ],
-        "Valor": [
-            f"{cantidad} und",
-            f"{paquetes_reales}",
-            f"{len(saldos)}",
-            f"{CAPACIDAD_TOTAL - cantidad} und"
-        ]
-    }
-    st.table(resumen_data)
-    
-    if cantidad > 0:
-        st.success("✅ Distribución calculada correctamente.")
+with col2:
+    st.subheader("Resumen Teja #4")
+    st.table({
+        "Concepto": ["Total Unidades", "Paquetes", "Saldos", "Espacio Libre"],
+        "Valor": [cantidad, paquetes, len(saldos), CAPACIDAD_TOTAL - cantidad]
+    })
