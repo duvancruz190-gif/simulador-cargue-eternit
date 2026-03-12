@@ -40,14 +40,12 @@ if not st.session_state.autenticado:
             else:
                 st.error("Acceso denegado")
 else:
-    # 2. ESTILOS CSS (TUS ESTILOS ORIGINALES)
     st.markdown("""
     <style>
         .cabina { background: #1A3A5A; color: white; text-align: center; padding: 10px; font-weight: bold; border-radius: 5px; margin-bottom:10px; }
-        .paquete-v { background: #27ae60; color: white; text-align: center; padding: 10px; margin: 2px; border-radius: 4px; font-size: 12px; height: 90px; display: flex; align-items: center; justify-content: center; flex-direction: column; }
+        .paquete-v { background: #27ae60; color: white; text-align: center; padding: 10px; margin: 2px; border-radius: 4px; font-size: 12px; height: 80px; display: flex; align-items: center; justify-content: center; flex-direction: column; }
         .paquete-h { background: #2980b9; color: white; text-align: center; padding: 15px; margin: 5px; border-radius: 4px; font-weight: bold; border: 2px dashed white; }
-        .saldo-box { background: #f1c40f; color: black; text-align: center; padding: 10px; margin: 2px; border-radius: 4px; font-size: 11px; font-weight: bold; height: 90px; display: flex; align-items: center; justify-content: center; flex-direction: column; border: 1px solid #d4ac0d; }
-        .pico-box { background: #E30613; color: white; text-align: center; padding: 10px; margin: 2px; border-radius: 4px; font-size: 11px; height: 90px; display: flex; align-items: center; justify-content: center; flex-direction: column; }
+        .saldo-box { background: #f1c40f; color: black; text-align: center; padding: 10px; margin: 2px; border-radius: 4px; font-size: 12px; font-weight: bold; height: 80px; display: flex; align-items: center; justify-content: center; flex-direction: column; }
         .stMetric { background: #f8f9fa; padding: 10px; border-radius: 10px; border-left: 5px solid #E30613; }
     </style>
     """, unsafe_allow_html=True)
@@ -74,75 +72,76 @@ else:
                     if numeros:
                         cant = int(numeros[-1])
                         info = PRODUCTOS_BASE[num_ref]
-                        nombre = f"TEJA FLEX. #{num_ref}" if "FLEX" in line_upper else f"TEJA #{num_ref}"
-                        pedido_items.append({"tipo": nombre, "cant": cant, "peso": cant * info["peso"], "ref": num_ref})
+                        nombre_mostrar = f"TEJA FLEX. #{num_ref}" if "FLEX" in line_upper else f"TEJA #{num_ref}"
+                        pedido_items.append({"tipo": nombre_mostrar, "cant": cant, "peso": cant * info["peso"], "ref": num_ref})
                         peso_total_pedido += cant * info["peso"]
 
     if pedido_items:
         vh_asignado = next((v for v in VEHICULOS if v["capacidad_max"] >= peso_total_pedido), VEHICULOS[-1])
         st.markdown(f"### 🚛 Vehículo Sugerido: {vh_asignado['tipo']}")
-        
-        # --- LÓGICA DE PAQUETES (REGLA DE 60) ---
+        c1, c2, c3 = st.columns(3)
+        c1.metric("Peso Total", f"{peso_total_pedido:,.2f} kg")
+        c2.metric("Capacidad VH", f"{vh_asignado['capacidad_max']:,.0f} kg")
+        largo_req = max([PRODUCTOS_BASE[i['ref']]['largo_ft'] for i in pedido_items])
+        c3.metric("Largo Requerido", f"{largo_req} ft")
+
+        # --- CORRECCIÓN DE LÓGICA DE DISTRIBUCIÓN ---
+        pedido_sorted = sorted(pedido_items, key=lambda x: PRODUCTOS_BASE[x['ref']]['largo_ft'], reverse=True)
         mapa_vertical = []
-        todos_los_saldos = [] # Aquí irán los de 60 y los picos
+        saldos = []
         
-        for item in pedido_items:
-            info = PRODUCTOS_BASE[item['ref']]
-            
-            # Paquetes grandes (Verdes/Azules)
-            num_paquetes = item["cant"] // info["paquete"]
-            residuo = item["cant"] % info["paquete"]
+        for item in pedido_sorted:
+            paq_tam = PRODUCTOS_BASE[item['ref']]['paquete']
+            num_paquetes = item["cant"] // paq_tam
+            sobrante_unidades = item["cant"] % paq_tam
             
             for _ in range(num_paquetes):
-                mapa_vertical.append({"label": item["tipo"], "cant": info["paquete"]})
+                mapa_vertical.append({"label": item["tipo"], "cant": paq_tam})
             
-            # Saldos de 60 (Amarillos)
-            if residuo > 0:
-                num_saldos_60 = residuo // 60
-                pico = residuo % 60
-                
-                for _ in range(num_saldos_60):
-                    todos_los_saldos.append({"label": item["tipo"], "cant": 60, "clase": "saldo-box"})
-                
-                # Pico final (Rojo)
-                if pico > 0:
-                    todos_los_saldos.append({"label": item["tipo"], "cant": pico, "clase": "pico-box"})
+            if sobrante_unidades > 0:
+                saldos.append({"label": item["tipo"], "cant": sobrante_unidades})
 
-        # --- ESTRUCTURA VISUAL (COMO LA TENÍAS) ---
+        st.markdown("---")
         st.markdown('<div class="cabina">FRENTE DEL VEHÍCULO (CABINA)</div>', unsafe_allow_html=True)
         
         paquetes_render = list(mapa_vertical)
-        atravesado = paquetes_render.pop() if len(paquetes_render) % 2 != 0 else None
-        rows = [paquetes_render[i:i+2] for i in range(0, len(paquetes_render), 2)]
-        saldos_list = list(todos_los_saldos)
+        atravesado = None
+        # Si hay un número impar de paquetes completos, el último va horizontal
+        if len(paquetes_render) % 2 != 0:
+            atravesado = paquetes_render.pop()
 
+        rows = [paquetes_render[i:i+2] for i in range(0, len(paquetes_render), 2)]
+        saldos_render = list(saldos)
+
+        # Renderizado de filas
         for row in rows:
             cols = st.columns(4)
-            with cols[0]: # Saldo Izquierda
-                if saldos_list:
-                    s = saldos_list.pop(0)
-                    st.markdown(f'<div class="{s["clase"]}">{s["label"]}<br>{s["cant"]} und</div>', unsafe_allow_html=True)
-            with cols[1]: # Paquete Verde 1
+            with cols[0]:
+                if saldos_render:
+                    s = saldos_render.pop(0)
+                    st.markdown(f'<div class="saldo-box">{s["label"]}<br>{s["cant"]} und</div>', unsafe_allow_html=True)
+            with cols[1]:
                 st.markdown(f'<div class="paquete-v">{row[0]["label"]}<br>({row[0]["cant"]})</div>', unsafe_allow_html=True)
-            with cols[2]: # Paquete Verde 2
+            with cols[2]:
                 if len(row) > 1:
                     st.markdown(f'<div class="paquete-v">{row[1]["label"]}<br>({row[1]["cant"]})</div>', unsafe_allow_html=True)
-            with cols[3]: # Saldo Derecha
-                if saldos_list:
-                    s = saldos_list.pop(0)
-                    st.markdown(f'<div class="{s["clase"]}">{s["label"]}<br>{s["cant"]} und</div>', unsafe_allow_html=True)
+            with cols[3]:
+                if saldos_render:
+                    s = saldos_render.pop(0)
+                    st.markdown(f'<div class="saldo-box">{s["label"]}<br>{s["cant"]} und</div>', unsafe_allow_html=True)
 
-        # Saldos que sobren si hay pocos paquetes verdes
-        while saldos_list:
-            cols_ex = st.columns(4)
-            with cols_ex[0]:
-                if saldos_list:
-                    s = saldos_list.pop(0)
-                    st.markdown(f'<div class="{s["clase"]}">{s["label"]}<br>{s["cant"]} und</div>', unsafe_allow_html=True)
-            with cols_ex[3]:
-                if saldos_list:
-                    s = saldos_list.pop(0)
-                    st.markdown(f'<div class="{s["clase"]}">{s["label"]}<br>{s["cant"]} und</div>', unsafe_allow_html=True)
+        # Saldos restantes si no hubo suficientes paquetes verdes para acompañarlos
+        if saldos_render:
+            while saldos_render:
+                cols_ex = st.columns(4)
+                with cols_ex[0]:
+                    if saldos_render:
+                        s = saldos_render.pop(0)
+                        st.markdown(f'<div class="saldo-box">{s["label"]}<br>{s["cant"]} und</div>', unsafe_allow_html=True)
+                with cols_ex[3]:
+                    if saldos_render:
+                        s = saldos_render.pop(0)
+                        st.markdown(f'<div class="saldo-box">{s["label"]}<br>{s["cant"]} und</div>', unsafe_allow_html=True)
 
         if atravesado:
             st.markdown(f'<div class="paquete-h">📦 PAQUETE HORIZONTAL TRASERO<br>{atravesado["label"]} ({atravesado["cant"]})</div>', unsafe_allow_html=True)
