@@ -1,11 +1,12 @@
 import streamlit as st
 import pandas as pd
+import re
 
 # 1. CONFIGURACIÓN Y DATOS TÉCNICOS
 USUARIO_CORRECTO = "DUVANCRUZ190@GMAIL.COM"
 CLAVE_CORRECTA = "Du854872*"
 
-# Base de datos de productos según tu imagen
+# Base de datos de productos
 PRODUCTOS = {
     "TEJA #4": {"peso": 11.82, "paquete": 130, "largo_ft": 4},
     "TEJA #5": {"peso": 14.77, "paquete": 130, "largo_ft": 5},
@@ -56,10 +57,10 @@ if login():
     </style>
     """, unsafe_allow_html=True)
 
-    # 3. ENTRADA DE DATOS (EXCEL COPY-PASTE)
+    # 3. ENTRADA DE DATOS
     with st.sidebar:
         st.header("📋 Carga de Pedido")
-        raw_data = st.text_area("Pegue aquí el pedido desde Excel (Nombre y Cantidad):", placeholder="TEJA #4 500\nTEJA #6 200")
+        raw_data = st.text_area("Pegue aquí el pedido desde Excel:", placeholder="Ejemplo: TEJA FLEXIFORTE #8 500 unidades")
         
         if st.button("Limpiar Datos"):
             st.rerun()
@@ -70,15 +71,27 @@ if login():
     if raw_data:
         lines = raw_data.strip().split('\n')
         for line in lines:
-            parts = line.split()
-            for key in PRODUCTOS.keys():
-                if key in line.upper():
-                    try:
-                        cant = int(parts[-1])
-                        peso_item = cant * PRODUCTOS[key]["peso"]
-                        pedido_items.append({"tipo": key, "cant": cant, "peso": peso_item})
-                        peso_total_pedido += peso_item
-                    except: pass
+            line_upper = line.upper()
+            
+            # Buscamos cada producto de nuestra base de datos en la línea
+            for prod_name in PRODUCTOS.keys():
+                # Esta es la parte clave: busca el nombre (ej: TEJA #5) dentro de la cadena
+                if prod_name in line_upper:
+                    # Una vez encontrado el nombre, extraemos todos los números de la línea
+                    # pero ignoramos el número que es parte del nombre (el #4, #5, etc.)
+                    # Usamos una expresión regular para encontrar la cantidad
+                    linea_sin_nombre = line_upper.replace(prod_name, "")
+                    numeros_encontrados = re.findall(r'\d+', linea_sin_nombre)
+                    
+                    if numeros_encontrados:
+                        try:
+                            # Tomamos el primer número que aparezca después de quitar el nombre
+                            cant = int(numeros_encontrados[0])
+                            peso_item = cant * PRODUCTOS[prod_name]["peso"]
+                            pedido_items.append({"tipo": prod_name, "cant": cant, "peso": peso_item})
+                            peso_total_pedido += peso_item
+                            break # Pasar a la siguiente línea
+                        except: pass
 
     if pedido_items:
         # 4. SELECCIÓN AUTOMÁTICA DE VEHÍCULO
@@ -92,7 +105,6 @@ if login():
         c3.metric("Largo Disponible", f"{vh_asignado['largo_planchon_ft']} ft")
 
         # 5. LÓGICA DE DISTRIBUCIÓN
-        # Simplificación: Ponemos los paquetes más largos al frente (cabina) para estabilidad
         pedido_items = sorted(pedido_items, key=lambda x: PRODUCTOS[x["tipo"]]["largo_ft"], reverse=True)
         
         mapa_vertical = []
@@ -112,23 +124,21 @@ if login():
         st.markdown("---")
         st.markdown('<div class="cabina">FRENTE DEL VEHÍCULO (CABINA)</div>', unsafe_allow_html=True)
         
-        # El planchón se divide en filas de 2 paquetes (izquierda y derecha)
-        rows = [mapa_vertical[i:i + 2] for i in range(0, len(mapa_vertical), 2)]
-        
-        # Espacio para el paquete horizontal (Atravesado) al final si es necesario
+        # Lógica de dibujo del planchón
+        paquetes_lista = list(mapa_vertical)
         atravesado = None
-        if len(mapa_vertical) % 2 != 0: # Si quedó uno solo, lo mandamos al final
-            atravesado = mapa_vertical.pop()
+        if len(paquetes_lista) % 2 != 0:
+            atravesado = paquetes_lista.pop()
 
-        # Render Vertical
+        rows = [paquetes_lista[i:i + 2] for i in range(0, len(paquetes_lista), 2)]
+        
         for row in rows:
-            cols = st.columns(4) # Columnas: Saldo | Paq | Paq | Saldo
+            cols = st.columns(4)
             with cols[1]:
                 if len(row) > 0: st.markdown(f'<div class="paquete-v">{row[0]["label"]}<br>({row[0]["cant"]})</div>', unsafe_allow_html=True)
             with cols[2]:
                 if len(row) > 1: st.markdown(f'<div class="paquete-v">{row[1]["label"]}<br>({row[1]["cant"]})</div>', unsafe_allow_html=True)
 
-        # Render Saldos (Parte superior/encima de la carga)
         if saldos:
             st.markdown("**📦 Saldos (Cargar encima de los paquetes):**")
             s_cols = st.columns(len(saldos) if len(saldos) < 5 else 5)
@@ -136,9 +146,8 @@ if login():
                 with s_cols[idx % 5]:
                     st.markdown(f'<div class="saldo-box">{s["label"]}<br>Unidades: {s["cant"]}</div>', unsafe_allow_html=True)
 
-        # Render Paquete Atravesado (Horizontal)
         if atravesado:
-            st.markdown('<div class="paquete-h">📦 PAQUETE HORIZONTAL (ATRAVESADO TRASERO)<br>' + atravesado["label"] + '</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="paquete-h">📦 PAQUETE HORIZONTAL (ATRAVESADO TRASERO)<br>{atravesado["label"]} ({atravesado["cant"]})</div>', unsafe_allow_html=True)
 
     else:
         st.info("Escriba o pegue un pedido en la barra lateral para generar el mapa de carga.")
