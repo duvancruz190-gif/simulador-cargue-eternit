@@ -73,7 +73,6 @@ if login():
     if raw_data:
         lines = raw_data.strip().split('\n')
         # Ordenamos las llaves de PRODUCTOS por longitud (de mayor a menor)
-        # Esto asegura que reconozca "TEJA FLEXIFORTE #10" antes que "TEJA #10"
         lista_ordenada_productos = sorted(PRODUCTOS.keys(), key=len, reverse=True)
         
         for line in lines:
@@ -105,7 +104,11 @@ if login():
         c1, c2, c3 = st.columns(3)
         c1.metric("Peso Total", f"{peso_total_pedido:,.2f} kg")
         c2.metric("Capacidad VH", f"{vh_asignado['capacidad_max']:,.0f} kg")
-        c3.metric("Largo Requerido", f"{max([PRODUCTOS[i['tipo']]['largo_ft'] for i in pedido_items])} ft")
+        # Asegurar un valor de largo por defecto si no hay items procesados
+        largo_req = 0
+        if pedido_items:
+            largo_req = max([PRODUCTOS[i['tipo']]['largo_ft'] for i in pedido_items])
+        c3.metric("Largo Requerido", f"{largo_req} ft")
 
         # 5. DISTRIBUCIÓN
         pedido_items_sorted = sorted(pedido_items, key=lambda x: PRODUCTOS[x["tipo"]]["largo_ft"], reverse=True)
@@ -125,31 +128,63 @@ if login():
 
         # 6. MAPA VISUAL
         st.markdown("---")
+        # El frente del vehículo (Cabina) siempre va primero
         st.markdown('<div class="cabina">FRENTE DEL VEHÍCULO (CABINA)</div>', unsafe_allow_html=True)
         
+        # Copiamos la lista para renderizar
         paquetes_render = list(mapa_vertical)
+        
+        # Identificamos el paquete horizontal (azul), si existe, ANTES de renderizar
         atravesado = None
         if len(paquetes_render) % 2 != 0:
             atravesado = paquetes_render.pop()
 
+        # Agrupamos los paquetes verticales en filas de 2
         rows = [paquetes_render[i:i + 2] for i in range(0, len(paquetes_render), 2)]
         
+        # NUEVA LÓGICA DE SALDOS (A LOS LADOS)
+        saldos_render = list(saldos)
+        
+        # Render Vertical (Usando las 4 columnas para colocar saldos en los extremos)
         for row in rows:
-            cols = st.columns(4)
+            cols = st.columns(4) # Estructura: Saldo Izq | Paq 1 | Paq 2 | Saldo Der
+            
+            # Saldo Izquierda (si queda alguno)
+            with cols[0]:
+                if saldos_render:
+                    s = saldos_render.pop(0)
+                    st.markdown(f'<div class="saldo-box">{s["label"]}<br>{s["cant"]} und</div>', unsafe_allow_html=True)
+            
+            # Paquetes Verticales (Verdes)
             with cols[1]:
                 st.markdown(f'<div class="paquete-v">{row[0]["label"]}<br>({row[0]["cant"]})</div>', unsafe_allow_html=True)
             with cols[2]:
                 if len(row) > 1:
                     st.markdown(f'<div class="paquete-v">{row[1]["label"]}<br>({row[1]["cant"]})</div>', unsafe_allow_html=True)
-
-        if saldos:
-            st.markdown("**📦 Saldos (Encima de la carga):**")
-            s_cols = st.columns(5)
-            for idx, s in enumerate(saldos):
-                with s_cols[idx % 5]:
+            
+            # Saldo Derecha (si queda alguno)
+            with cols[3]:
+                if saldos_render:
+                    s = saldos_render.pop(0)
                     st.markdown(f'<div class="saldo-box">{s["label"]}<br>{s["cant"]} und</div>', unsafe_allow_html=True)
 
+        # Si aún quedan saldos (más de 2 por fila de paquetes), se dibujan en filas extra de saldos
+        if saldos_render:
+            while saldos_render:
+                cols_extra = st.columns(4)
+                # Ocupamos solo las columnas de los extremos para los saldos extra
+                with cols_extra[0]:
+                    if saldos_render:
+                        s = saldos_render.pop(0)
+                        st.markdown(f'<div class="saldo-box">{s["label"]}<br>{s["cant"]} und</div>', unsafe_allow_html=True)
+                with cols_extra[3]:
+                    if saldos_render:
+                        s = saldos_render.pop(0)
+                        st.markdown(f'<div class="saldo-box">{s["label"]}<br>{s["cant"]} und</div>', unsafe_allow_html=True)
+
+        # Render Paquete Atravesado (Azul) - CAMBIADO AL FINAL
         if atravesado:
             st.markdown(f'<div class="paquete-h">📦 PAQUETE HORIZONTAL TRASERO<br>{atravesado["label"]} ({atravesado["cant"]})</div>', unsafe_allow_html=True)
+
     else:
         st.info("Pega los datos del pedido para ver el desglose.")
