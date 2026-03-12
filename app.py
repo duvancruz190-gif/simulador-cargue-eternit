@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import re
 
-# 1. CONFIGURACIÓN Y DATOS TÉCNICOS (SEGÚN TU TABLA)
+# 1. CONFIGURACIÓN Y DATOS TÉCNICOS
 USUARIO_CORRECTO = "DUVANCRUZ190@GMAIL.COM"
 CLAVE_CORRECTA = "Du854872*"
 
@@ -40,12 +40,13 @@ if not st.session_state.autenticado:
             else:
                 st.error("Acceso denegado")
 else:
+    # 2. ESTILOS CSS (TUS ESTILOS ORIGINALES)
     st.markdown("""
     <style>
         .cabina { background: #1A3A5A; color: white; text-align: center; padding: 10px; font-weight: bold; border-radius: 5px; margin-bottom:10px; }
         .paquete-v { background: #27ae60; color: white; text-align: center; padding: 10px; margin: 2px; border-radius: 4px; font-size: 12px; height: 90px; display: flex; align-items: center; justify-content: center; flex-direction: column; }
         .paquete-h { background: #2980b9; color: white; text-align: center; padding: 15px; margin: 5px; border-radius: 4px; font-weight: bold; border: 2px dashed white; }
-        .saldo-box { background: #f1c40f; color: black; text-align: center; padding: 10px; margin: 2px; border-radius: 4px; font-size: 12px; font-weight: bold; height: 90px; display: flex; align-items: center; justify-content: center; flex-direction: column; border: 1px solid #d4ac0d; }
+        .saldo-box { background: #f1c40f; color: black; text-align: center; padding: 10px; margin: 2px; border-radius: 4px; font-size: 11px; font-weight: bold; height: 90px; display: flex; align-items: center; justify-content: center; flex-direction: column; border: 1px solid #d4ac0d; }
         .pico-box { background: #E30613; color: white; text-align: center; padding: 10px; margin: 2px; border-radius: 4px; font-size: 11px; height: 90px; display: flex; align-items: center; justify-content: center; flex-direction: column; }
         .stMetric { background: #f8f9fa; padding: 10px; border-radius: 10px; border-left: 5px solid #E30613; }
     </style>
@@ -73,8 +74,7 @@ else:
                     if numeros:
                         cant = int(numeros[-1])
                         info = PRODUCTOS_BASE[num_ref]
-                        nombre = f"TEJA #{num_ref}"
-                        if "FLEX" in line_upper: nombre = f"TEJA FLEX. #{num_ref}"
+                        nombre = f"TEJA FLEX. #{num_ref}" if "FLEX" in line_upper else f"TEJA #{num_ref}"
                         pedido_items.append({"tipo": nombre, "cant": cant, "peso": cant * info["peso"], "ref": num_ref})
                         peso_total_pedido += cant * info["peso"]
 
@@ -82,74 +82,69 @@ else:
         vh_asignado = next((v for v in VEHICULOS if v["capacidad_max"] >= peso_total_pedido), VEHICULOS[-1])
         st.markdown(f"### 🚛 Vehículo Sugerido: {vh_asignado['tipo']}")
         
-        # --- LÓGICA DE DISTRIBUCIÓN BASADA EN TU IMAGEN ---
+        # --- LÓGICA DE PAQUETES (REGLA DE 60) ---
         mapa_vertical = []
-        saldos_60 = []
-        picos_sueltos = []
+        todos_los_saldos = [] # Aquí irán los de 60 y los picos
         
         for item in pedido_items:
             info = PRODUCTOS_BASE[item['ref']]
-            cant_actual = item["cant"]
             
-            # 1. Paquetes grandes (130 o 100)
-            num_paquetes = cant_actual // info["paquete"]
-            residuo = cant_actual % info["paquete"]
+            # Paquetes grandes (Verdes/Azules)
+            num_paquetes = item["cant"] // info["paquete"]
+            residuo = item["cant"] % info["paquete"]
             
             for _ in range(num_paquetes):
                 mapa_vertical.append({"label": item["tipo"], "cant": info["paquete"]})
             
-            # 2. Manejo de Saldos (Regla de 60)
+            # Saldos de 60 (Amarillos)
             if residuo > 0:
                 num_saldos_60 = residuo // 60
                 pico = residuo % 60
                 
                 for _ in range(num_saldos_60):
-                    saldos_60.append({"label": item["tipo"], "cant": 60})
+                    todos_los_saldos.append({"label": item["tipo"], "cant": 60, "clase": "saldo-box"})
                 
+                # Pico final (Rojo)
                 if pico > 0:
-                    picos_sueltos.append({"label": item["tipo"], "cant": pico})
+                    todos_los_saldos.append({"label": item["tipo"], "cant": pico, "clase": "pico-box"})
 
-        # --- RENDERIZADO VISUAL ---
+        # --- ESTRUCTURA VISUAL (COMO LA TENÍAS) ---
         st.markdown('<div class="cabina">FRENTE DEL VEHÍCULO (CABINA)</div>', unsafe_allow_html=True)
         
         paquetes_render = list(mapa_vertical)
         atravesado = paquetes_render.pop() if len(paquetes_render) % 2 != 0 else None
         rows = [paquetes_render[i:i+2] for i in range(0, len(paquetes_render), 2)]
-        
-        todos_los_saldos = saldos_60 + picos_sueltos
+        saldos_list = list(todos_los_saldos)
 
         for row in rows:
             cols = st.columns(4)
-            with cols[0]:
-                if todos_los_saldos:
-                    s = todos_los_saldos.pop(0)
-                    clase = "saldo-box" if s["cant"] == 60 else "pico-box"
-                    st.markdown(f'<div class="{clase}">{s["label"]}<br>{s["cant"]} und</div>', unsafe_allow_html=True)
-            with cols[1]:
+            with cols[0]: # Saldo Izquierda
+                if saldos_list:
+                    s = saldos_list.pop(0)
+                    st.markdown(f'<div class="{s["clase"]}">{s["label"]}<br>{s["cant"]} und</div>', unsafe_allow_html=True)
+            with cols[1]: # Paquete Verde 1
                 st.markdown(f'<div class="paquete-v">{row[0]["label"]}<br>({row[0]["cant"]})</div>', unsafe_allow_html=True)
-            with cols[2]:
-                if len(row) > 1: st.markdown(f'<div class="paquete-v">{row[1]["label"]}<br>({row[1]["cant"]})</div>', unsafe_allow_html=True)
-            with cols[3]:
-                if todos_los_saldos:
-                    s = todos_los_saldos.pop(0)
-                    clase = "saldo-box" if s["cant"] == 60 else "pico-box"
-                    st.markdown(f'<div class="{clase}">{s["label"]}<br>{s["cant"]} und</div>', unsafe_allow_html=True)
+            with cols[2]: # Paquete Verde 2
+                if len(row) > 1:
+                    st.markdown(f'<div class="paquete-v">{row[1]["label"]}<br>({row[1]["cant"]})</div>', unsafe_allow_html=True)
+            with cols[3]: # Saldo Derecha
+                if saldos_list:
+                    s = saldos_list.pop(0)
+                    st.markdown(f'<div class="{s["clase"]}">{s["label"]}<br>{s["cant"]} und</div>', unsafe_allow_html=True)
 
-        # Saldos extra si sobran
-        while todos_los_saldos:
+        # Saldos que sobren si hay pocos paquetes verdes
+        while saldos_list:
             cols_ex = st.columns(4)
             with cols_ex[0]:
-                if todos_los_saldos:
-                    s = todos_los_saldos.pop(0)
-                    clase = "saldo-box" if s["cant"] == 60 else "pico-box"
-                    st.markdown(f'<div class="{clase}">{s["label"]}<br>{s["cant"]} und</div>', unsafe_allow_html=True)
+                if saldos_list:
+                    s = saldos_list.pop(0)
+                    st.markdown(f'<div class="{s["clase"]}">{s["label"]}<br>{s["cant"]} und</div>', unsafe_allow_html=True)
             with cols_ex[3]:
-                if todos_los_saldos:
-                    s = todos_los_saldos.pop(0)
-                    clase = "saldo-box" if s["cant"] == 60 else "pico-box"
-                    st.markdown(f'<div class="{clase}">{s["label"]}<br>{s["cant"]} und</div>', unsafe_allow_html=True)
+                if saldos_list:
+                    s = saldos_list.pop(0)
+                    st.markdown(f'<div class="{s["clase"]}">{s["label"]}<br>{s["cant"]} und</div>', unsafe_allow_html=True)
 
         if atravesado:
             st.markdown(f'<div class="paquete-h">📦 PAQUETE HORIZONTAL TRASERO<br>{atravesado["label"]} ({atravesado["cant"]})</div>', unsafe_allow_html=True)
     else:
-        st.info("Pega el pedido para procesar según la tabla técnica.")
+        st.info("Pega los datos del pedido para ver el desglose.")
