@@ -6,15 +6,13 @@ import re
 USUARIO_CORRECTO = "DUVANCRUZ190@GMAIL.COM"
 CLAVE_CORRECTA = "Du854872*"
 
-# Base de datos ampliada con todas las variantes posibles
-PRODUCTOS = {
-    "TEJA FLEXIFORTE #10": {"peso": 29.54, "paquete": 100, "largo_ft": 10},
-    "TEJA FLEXIFORTE #8": {"peso": 23.63, "paquete": 130, "largo_ft": 8},
-    "TEJA #10": {"peso": 29.54, "paquete": 100, "largo_ft": 10},
-    "TEJA #8": {"peso": 23.63, "paquete": 130, "largo_ft": 8},
-    "TEJA #6": {"peso": 17.72, "paquete": 130, "largo_ft": 6},
-    "TEJA #5": {"peso": 14.77, "paquete": 130, "largo_ft": 5},
-    "TEJA #4": {"peso": 11.82, "paquete": 130, "largo_ft": 4},
+# Base de datos simplificada (El buscador ahora es inteligente)
+PRODUCTOS_BASE = {
+    "4": {"peso": 11.82, "paquete": 130, "largo_ft": 4},
+    "5": {"peso": 14.77, "paquete": 130, "largo_ft": 5},
+    "6": {"peso": 17.72, "paquete": 130, "largo_ft": 6},
+    "8": {"peso": 23.63, "paquete": 130, "largo_ft": 8},
+    "10": {"peso": 29.54, "paquete": 100, "largo_ft": 10},
 }
 
 VEHICULOS = [
@@ -27,164 +25,128 @@ VEHICULOS = [
 
 st.set_page_config(page_title="Smart Picking PRO", layout="wide")
 
-# --- FUNCION DE LOGIN ---
-def login():
-    if "autenticado" not in st.session_state:
-        st.session_state.autenticado = False
-    if not st.session_state.autenticado:
-        col1, col2, col3 = st.columns([1, 2, 1])
-        with col2:
-            st.image("ETERNIT LOGOS.webp", use_container_width=True)
-            usuario = st.text_input("Correo electrónico").upper()
-            clave = st.text_input("Contraseña", type="password")
-            if st.button("Ingresar", use_container_width=True):
-                if usuario == USUARIO_CORRECTO and clave == CLAVE_CORRECTA:
-                    st.session_state.autenticado = True
-                    st.rerun()
-                else:
-                    st.error("Acceso denegado")
-        return False
-    return True
+if "autenticado" not in st.session_state:
+    st.session_state.autenticado = False
 
-if login():
+if not st.session_state.autenticado:
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.image("ETERNIT LOGOS.webp", use_container_width=True)
+        usuario = st.text_input("Correo electrónico").upper()
+        clave = st.text_input("Contraseña", type="password")
+        if st.button("Ingresar", use_container_width=True):
+            if usuario == USUARIO_CORRECTO and clave == CLAVE_CORRECTA:
+                st.session_state.autenticado = True
+                st.rerun()
+            else:
+                st.error("Acceso denegado")
+else:
     # 2. ESTILOS CSS
     st.markdown("""
     <style>
-        .cabina { background: #1A3A5A; color: white; text-align: center; padding: 10px; font-weight: bold; border-radius: 5px; }
+        .cabina { background: #1A3A5A; color: white; text-align: center; padding: 10px; font-weight: bold; border-radius: 5px; margin-bottom:10px; }
         .paquete-v { background: #27ae60; color: white; text-align: center; padding: 10px; margin: 2px; border-radius: 4px; font-size: 12px; }
         .paquete-h { background: #2980b9; color: white; text-align: center; padding: 15px; margin: 5px; border-radius: 4px; font-weight: bold; border: 2px dashed white; }
-        .saldo-box { background: #f1c40f; color: black; text-align: center; padding: 10px; margin: 2px; border-radius: 4px; font-size: 12px; }
+        .saldo-box { background: #f1c40f; color: black; text-align: center; padding: 10px; margin: 2px; border-radius: 4px; font-size: 12px; font-weight: bold; }
         .stMetric { background: #f8f9fa; padding: 10px; border-radius: 10px; border-left: 5px solid #E30613; }
     </style>
     """, unsafe_allow_html=True)
 
-    # 3. ENTRADA DE DATOS
     with st.sidebar:
         st.header("📋 Carga de Pedido")
-        raw_data = st.text_area("Pegue aquí el pedido desde Excel:", height=250)
-        
+        raw_data = st.text_area("Pegue aquí el pedido:", height=250, placeholder="TEJA FLEXIFORTE #5 900")
         if st.button("Limpiar Datos"):
             st.rerun()
 
-    # --- LÓGICA DE PROCESAMIENTO MULTI-REFERENCIA ---
+    # --- LÓGICA DE PROCESAMIENTO ULTRA-ROBUSTA ---
     pedido_items = []
     peso_total_pedido = 0
     
     if raw_data:
         lines = raw_data.strip().split('\n')
-        # Ordenamos las llaves de PRODUCTOS por longitud (de mayor a menor)
-        lista_ordenada_productos = sorted(PRODUCTOS.keys(), key=len, reverse=True)
-        
         for line in lines:
             line_upper = line.upper().strip()
             if not line_upper: continue
             
-            for prod_name in lista_ordenada_productos:
-                if prod_name in line_upper:
-                    # Quitamos el nombre de la teja para que no confunda el # de teja con la cantidad
-                    texto_sin_nombre = line_upper.replace(prod_name, "")
-                    # Buscamos todos los números que queden en la línea
-                    numeros = re.findall(r'\d+', texto_sin_nombre)
-                    
+            # Buscamos el número de teja (#4, #5, etc.) y la cantidad
+            # Esta expresión busca: palabra TEJA + cualquier texto + # + número de referencia + espacio + cantidad
+            match_ref = re.search(r'#(\d+)', line_upper)
+            
+            if match_ref:
+                num_ref = match_ref.group(1) # Extrae el '5' de '#5'
+                if num_ref in PRODUCTOS_BASE:
+                    # Buscamos la cantidad: es el número más grande al final o después de la referencia
+                    numeros = re.findall(r'\d+', line_upper.replace(f"#{num_ref}", ""))
                     if numeros:
-                        try:
-                            # El primer número que sobre en la línea es la cantidad
-                            cant = int(numeros[0])
-                            peso_item = cant * PRODUCTOS[prod_name]["peso"]
-                            pedido_items.append({"tipo": prod_name, "cant": cant, "peso": peso_item})
-                            peso_total_pedido += peso_item
-                            break # Ya encontró el producto en esta línea, pasa a la siguiente
-                        except: pass
+                        cant = int(numeros[-1]) # Tomamos el último número de la línea (usualmente la cantidad)
+                        info = PRODUCTOS_BASE[num_ref]
+                        
+                        nombre_mostrar = f"TEJA #{num_ref}"
+                        if "FLEXIFORTE" in line_upper: nombre_mostrar = f"TEJA FLEX. #{num_ref}"
+                        
+                        pedido_items.append({"tipo": nombre_mostrar, "cant": cant, "peso": cant * info["peso"], "ref": num_ref})
+                        peso_total_pedido += cant * info["peso"]
 
     if pedido_items:
-        # 4. SELECCIÓN DE VEHÍCULO
         vh_asignado = next((v for v in VEHICULOS if v["capacidad_max"] >= peso_total_pedido), VEHICULOS[-1])
         
         st.markdown(f"### 🚛 Vehículo Sugerido: {vh_asignado['tipo']}")
         c1, c2, c3 = st.columns(3)
         c1.metric("Peso Total", f"{peso_total_pedido:,.2f} kg")
         c2.metric("Capacidad VH", f"{vh_asignado['capacidad_max']:,.0f} kg")
-        # Asegurar un valor de largo por defecto si no hay items procesados
-        largo_req = 0
-        if pedido_items:
-            largo_req = max([PRODUCTOS[i['tipo']]['largo_ft'] for i in pedido_items])
+        largo_req = max([PRODUCTOS_BASE[i['ref']]['largo_ft'] for i in pedido_items])
         c3.metric("Largo Requerido", f"{largo_req} ft")
 
-        # 5. DISTRIBUCIÓN
-        pedido_items_sorted = sorted(pedido_items, key=lambda x: PRODUCTOS[x["tipo"]]["largo_ft"], reverse=True)
-        
+        # DISTRIBUCIÓN
+        pedido_sorted = sorted(pedido_items, key=lambda x: PRODUCTOS_BASE[x['ref']]['largo_ft'], reverse=True)
         mapa_vertical = []
         saldos = []
         
-        for item in pedido_items_sorted:
-            paq_tam = PRODUCTOS[item["tipo"]]["paquete"]
+        for item in pedido_sorted:
+            paq_tam = PRODUCTOS_BASE[item['ref']]['paquete']
             completos = item["cant"] // paq_tam
             sobra = item["cant"] % paq_tam
-            
             for _ in range(completos):
                 mapa_vertical.append({"label": item["tipo"], "cant": paq_tam})
             if sobra > 0:
                 saldos.append({"label": item["tipo"], "cant": sobra})
 
-        # 6. MAPA VISUAL
+        # MAPA VISUAL
         st.markdown("---")
-        # El frente del vehículo (Cabina) siempre va primero
         st.markdown('<div class="cabina">FRENTE DEL VEHÍCULO (CABINA)</div>', unsafe_allow_html=True)
         
-        # Copiamos la lista para renderizar
         paquetes_render = list(mapa_vertical)
-        
-        # Identificamos el paquete horizontal (azul), si existe, ANTES de renderizar
-        atravesado = None
-        if len(paquetes_render) % 2 != 0:
-            atravesado = paquetes_render.pop()
-
-        # Agrupamos los paquetes verticales en filas de 2
-        rows = [paquetes_render[i:i + 2] for i in range(0, len(paquetes_render), 2)]
-        
-        # NUEVA LÓGICA DE SALDOS (A LOS LADOS)
+        atravesado = paquetes_render.pop() if len(paquetes_render) % 2 != 0 else None
+        rows = [paquetes_render[i:i+2] for i in range(0, len(paquetes_render), 2)]
         saldos_render = list(saldos)
-        
-        # Render Vertical (Usando las 4 columnas para colocar saldos en los extremos)
+
         for row in rows:
-            cols = st.columns(4) # Estructura: Saldo Izq | Paq 1 | Paq 2 | Saldo Der
-            
-            # Saldo Izquierda (si queda alguno)
+            cols = st.columns(4)
             with cols[0]:
                 if saldos_render:
                     s = saldos_render.pop(0)
                     st.markdown(f'<div class="saldo-box">{s["label"]}<br>{s["cant"]} und</div>', unsafe_allow_html=True)
-            
-            # Paquetes Verticales (Verdes)
             with cols[1]:
                 st.markdown(f'<div class="paquete-v">{row[0]["label"]}<br>({row[0]["cant"]})</div>', unsafe_allow_html=True)
             with cols[2]:
-                if len(row) > 1:
-                    st.markdown(f'<div class="paquete-v">{row[1]["label"]}<br>({row[1]["cant"]})</div>', unsafe_allow_html=True)
-            
-            # Saldo Derecha (si queda alguno)
+                if len(row) > 1: st.markdown(f'<div class="paquete-v">{row[1]["label"]}<br>({row[1]["cant"]})</div>', unsafe_allow_html=True)
             with cols[3]:
                 if saldos_render:
                     s = saldos_render.pop(0)
                     st.markdown(f'<div class="saldo-box">{s["label"]}<br>{s["cant"]} und</div>', unsafe_allow_html=True)
 
-        # Si aún quedan saldos (más de 2 por fila de paquetes), se dibujan en filas extra de saldos
-        if saldos_render:
-            while saldos_render:
-                cols_extra = st.columns(4)
-                # Ocupamos solo las columnas de los extremos para los saldos extra
-                with cols_extra[0]:
-                    if saldos_render:
-                        s = saldos_render.pop(0)
-                        st.markdown(f'<div class="saldo-box">{s["label"]}<br>{s["cant"]} und</div>', unsafe_allow_html=True)
-                with cols_extra[3]:
-                    if saldos_render:
-                        s = saldos_render.pop(0)
-                        st.markdown(f'<div class="saldo-box">{s["label"]}<br>{s["cant"]} und</div>', unsafe_allow_html=True)
+        while saldos_render:
+            cols_ex = st.columns(4)
+            with cols_ex[0]:
+                if saldos_render:
+                    s = saldos_render.pop(0)
+                    st.markdown(f'<div class="saldo-box">{s["label"]}<br>{s["cant"]} und</div>', unsafe_allow_html=True)
+            with cols_ex[3]:
+                if saldos_render:
+                    s = saldos_render.pop(0)
+                    st.markdown(f'<div class="saldo-box">{s["label"]}<br>{s["cant"]} und</div>', unsafe_allow_html=True)
 
-        # Render Paquete Atravesado (Azul) - CAMBIADO AL FINAL
         if atravesado:
             st.markdown(f'<div class="paquete-h">📦 PAQUETE HORIZONTAL TRASERO<br>{atravesado["label"]} ({atravesado["cant"]})</div>', unsafe_allow_html=True)
-
     else:
         st.info("Pega los datos del pedido para ver el desglose.")
