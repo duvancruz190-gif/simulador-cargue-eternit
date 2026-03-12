@@ -2,11 +2,10 @@ import streamlit as st
 import pandas as pd
 import re
 
-# 1. CONFIGURACIÓN Y DATOS TÉCNICOS
+# 1. CONFIGURACIÓN Y DATOS TÉCNICOS (SEGÚN TU TABLA)
 USUARIO_CORRECTO = "DUVANCRUZ190@GMAIL.COM"
 CLAVE_CORRECTA = "Du854872*"
 
-# Base de datos simplificada (El buscador ahora es inteligente)
 PRODUCTOS_BASE = {
     "4": {"peso": 11.82, "paquete": 130, "largo_ft": 4},
     "5": {"peso": 14.77, "paquete": 130, "largo_ft": 5},
@@ -41,24 +40,23 @@ if not st.session_state.autenticado:
             else:
                 st.error("Acceso denegado")
 else:
-    # 2. ESTILOS CSS
     st.markdown("""
     <style>
         .cabina { background: #1A3A5A; color: white; text-align: center; padding: 10px; font-weight: bold; border-radius: 5px; margin-bottom:10px; }
-        .paquete-v { background: #27ae60; color: white; text-align: center; padding: 10px; margin: 2px; border-radius: 4px; font-size: 12px; }
+        .paquete-v { background: #27ae60; color: white; text-align: center; padding: 10px; margin: 2px; border-radius: 4px; font-size: 12px; height: 90px; display: flex; align-items: center; justify-content: center; flex-direction: column; }
         .paquete-h { background: #2980b9; color: white; text-align: center; padding: 15px; margin: 5px; border-radius: 4px; font-weight: bold; border: 2px dashed white; }
-        .saldo-box { background: #f1c40f; color: black; text-align: center; padding: 10px; margin: 2px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+        .saldo-box { background: #f1c40f; color: black; text-align: center; padding: 10px; margin: 2px; border-radius: 4px; font-size: 12px; font-weight: bold; height: 90px; display: flex; align-items: center; justify-content: center; flex-direction: column; border: 1px solid #d4ac0d; }
+        .pico-box { background: #E30613; color: white; text-align: center; padding: 10px; margin: 2px; border-radius: 4px; font-size: 11px; height: 90px; display: flex; align-items: center; justify-content: center; flex-direction: column; }
         .stMetric { background: #f8f9fa; padding: 10px; border-radius: 10px; border-left: 5px solid #E30613; }
     </style>
     """, unsafe_allow_html=True)
 
     with st.sidebar:
         st.header("📋 Carga de Pedido")
-        raw_data = st.text_area("Pegue aquí el pedido:", height=250, placeholder="TEJA FLEXIFORTE #5 900")
+        raw_data = st.text_area("Pegue aquí el pedido:", height=250)
         if st.button("Limpiar Datos"):
             st.rerun()
 
-    # --- LÓGICA DE PROCESAMIENTO ULTRA-ROBUSTA ---
     pedido_items = []
     peso_total_pedido = 0
     
@@ -67,86 +65,91 @@ else:
         for line in lines:
             line_upper = line.upper().strip()
             if not line_upper: continue
-            
-            # Buscamos el número de teja (#4, #5, etc.) y la cantidad
-            # Esta expresión busca: palabra TEJA + cualquier texto + # + número de referencia + espacio + cantidad
             match_ref = re.search(r'#(\d+)', line_upper)
-            
             if match_ref:
-                num_ref = match_ref.group(1) # Extrae el '5' de '#5'
+                num_ref = match_ref.group(1)
                 if num_ref in PRODUCTOS_BASE:
-                    # Buscamos la cantidad: es el número más grande al final o después de la referencia
                     numeros = re.findall(r'\d+', line_upper.replace(f"#{num_ref}", ""))
                     if numeros:
-                        cant = int(numeros[-1]) # Tomamos el último número de la línea (usualmente la cantidad)
+                        cant = int(numeros[-1])
                         info = PRODUCTOS_BASE[num_ref]
-                        
-                        nombre_mostrar = f"TEJA #{num_ref}"
-                        if "FLEXIFORTE" in line_upper: nombre_mostrar = f"TEJA FLEX. #{num_ref}"
-                        
-                        pedido_items.append({"tipo": nombre_mostrar, "cant": cant, "peso": cant * info["peso"], "ref": num_ref})
+                        nombre = f"TEJA #{num_ref}"
+                        if "FLEX" in line_upper: nombre = f"TEJA FLEX. #{num_ref}"
+                        pedido_items.append({"tipo": nombre, "cant": cant, "peso": cant * info["peso"], "ref": num_ref})
                         peso_total_pedido += cant * info["peso"]
 
     if pedido_items:
         vh_asignado = next((v for v in VEHICULOS if v["capacidad_max"] >= peso_total_pedido), VEHICULOS[-1])
-        
         st.markdown(f"### 🚛 Vehículo Sugerido: {vh_asignado['tipo']}")
-        c1, c2, c3 = st.columns(3)
-        c1.metric("Peso Total", f"{peso_total_pedido:,.2f} kg")
-        c2.metric("Capacidad VH", f"{vh_asignado['capacidad_max']:,.0f} kg")
-        largo_req = max([PRODUCTOS_BASE[i['ref']]['largo_ft'] for i in pedido_items])
-        c3.metric("Largo Requerido", f"{largo_req} ft")
-
-        # DISTRIBUCIÓN
-        pedido_sorted = sorted(pedido_items, key=lambda x: PRODUCTOS_BASE[x['ref']]['largo_ft'], reverse=True)
-        mapa_vertical = []
-        saldos = []
         
-        for item in pedido_sorted:
-            paq_tam = PRODUCTOS_BASE[item['ref']]['paquete']
-            completos = item["cant"] // paq_tam
-            sobra = item["cant"] % paq_tam
-            for _ in range(completos):
-                mapa_vertical.append({"label": item["tipo"], "cant": paq_tam})
-            if sobra > 0:
-                saldos.append({"label": item["tipo"], "cant": sobra})
+        # --- LÓGICA DE DISTRIBUCIÓN BASADA EN TU IMAGEN ---
+        mapa_vertical = []
+        saldos_60 = []
+        picos_sueltos = []
+        
+        for item in pedido_items:
+            info = PRODUCTOS_BASE[item['ref']]
+            cant_actual = item["cant"]
+            
+            # 1. Paquetes grandes (130 o 100)
+            num_paquetes = cant_actual // info["paquete"]
+            residuo = cant_actual % info["paquete"]
+            
+            for _ in range(num_paquetes):
+                mapa_vertical.append({"label": item["tipo"], "cant": info["paquete"]})
+            
+            # 2. Manejo de Saldos (Regla de 60)
+            if residuo > 0:
+                num_saldos_60 = residuo // 60
+                pico = residuo % 60
+                
+                for _ in range(num_saldos_60):
+                    saldos_60.append({"label": item["tipo"], "cant": 60})
+                
+                if pico > 0:
+                    picos_sueltos.append({"label": item["tipo"], "cant": pico})
 
-        # MAPA VISUAL
-        st.markdown("---")
+        # --- RENDERIZADO VISUAL ---
         st.markdown('<div class="cabina">FRENTE DEL VEHÍCULO (CABINA)</div>', unsafe_allow_html=True)
         
         paquetes_render = list(mapa_vertical)
         atravesado = paquetes_render.pop() if len(paquetes_render) % 2 != 0 else None
         rows = [paquetes_render[i:i+2] for i in range(0, len(paquetes_render), 2)]
-        saldos_render = list(saldos)
+        
+        todos_los_saldos = saldos_60 + picos_sueltos
 
         for row in rows:
             cols = st.columns(4)
             with cols[0]:
-                if saldos_render:
-                    s = saldos_render.pop(0)
-                    st.markdown(f'<div class="saldo-box">{s["label"]}<br>{s["cant"]} und</div>', unsafe_allow_html=True)
+                if todos_los_saldos:
+                    s = todos_los_saldos.pop(0)
+                    clase = "saldo-box" if s["cant"] == 60 else "pico-box"
+                    st.markdown(f'<div class="{clase}">{s["label"]}<br>{s["cant"]} und</div>', unsafe_allow_html=True)
             with cols[1]:
                 st.markdown(f'<div class="paquete-v">{row[0]["label"]}<br>({row[0]["cant"]})</div>', unsafe_allow_html=True)
             with cols[2]:
                 if len(row) > 1: st.markdown(f'<div class="paquete-v">{row[1]["label"]}<br>({row[1]["cant"]})</div>', unsafe_allow_html=True)
             with cols[3]:
-                if saldos_render:
-                    s = saldos_render.pop(0)
-                    st.markdown(f'<div class="saldo-box">{s["label"]}<br>{s["cant"]} und</div>', unsafe_allow_html=True)
+                if todos_los_saldos:
+                    s = todos_los_saldos.pop(0)
+                    clase = "saldo-box" if s["cant"] == 60 else "pico-box"
+                    st.markdown(f'<div class="{clase}">{s["label"]}<br>{s["cant"]} und</div>', unsafe_allow_html=True)
 
-        while saldos_render:
+        # Saldos extra si sobran
+        while todos_los_saldos:
             cols_ex = st.columns(4)
             with cols_ex[0]:
-                if saldos_render:
-                    s = saldos_render.pop(0)
-                    st.markdown(f'<div class="saldo-box">{s["label"]}<br>{s["cant"]} und</div>', unsafe_allow_html=True)
+                if todos_los_saldos:
+                    s = todos_los_saldos.pop(0)
+                    clase = "saldo-box" if s["cant"] == 60 else "pico-box"
+                    st.markdown(f'<div class="{clase}">{s["label"]}<br>{s["cant"]} und</div>', unsafe_allow_html=True)
             with cols_ex[3]:
-                if saldos_render:
-                    s = saldos_render.pop(0)
-                    st.markdown(f'<div class="saldo-box">{s["label"]}<br>{s["cant"]} und</div>', unsafe_allow_html=True)
+                if todos_los_saldos:
+                    s = todos_los_saldos.pop(0)
+                    clase = "saldo-box" if s["cant"] == 60 else "pico-box"
+                    st.markdown(f'<div class="{clase}">{s["label"]}<br>{s["cant"]} und</div>', unsafe_allow_html=True)
 
         if atravesado:
             st.markdown(f'<div class="paquete-h">📦 PAQUETE HORIZONTAL TRASERO<br>{atravesado["label"]} ({atravesado["cant"]})</div>', unsafe_allow_html=True)
     else:
-        st.info("Pega los datos del pedido para ver el desglose.")
+        st.info("Pega el pedido para procesar según la tabla técnica.")
