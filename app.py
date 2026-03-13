@@ -6,7 +6,6 @@ import re
 USUARIO_CORRECTO = "DUVANCRUZ190@GMAIL.COM"
 CLAVE_CORRECTA = "Du854872*"
 
-# Base de datos de productos
 PRODUCTOS_BASE = {
     "4": {"peso": 11.82, "paquete": 130, "largo_ft": 4},
     "5": {"peso": 14.77, "paquete": 130, "largo_ft": 5},
@@ -32,34 +31,20 @@ if "autenticado" not in st.session_state:
 if not st.session_state.autenticado:
     st.markdown("""
         <style>
-            /* Eliminar anclas y decoraciones de Streamlit */
+            /* Eliminar iconos de enlace y mejorar tipografía */
             [data-testid="stHeaderActionElements"] { display: none; }
             .stMarkdown h2 a { display: none; }
             
-            /* Contenedor principal con ancho aumentado para que el logo luzca más */
-            .main-login-box {
-                width: 100%;
-                max-width: 500px; 
-                margin: 0 auto;
-            }
-
-            /* Estilo para agrandar el logo ocupando el ancho del contenedor */
-            .logo-grande {
-                display: block;
-                width: 100%;
-                height: auto;
-                margin-bottom: 20px;
-            }
-
-            /* Botón institucional */
+            /* Botón Rojo Eternit */
             div.stButton > button:first-child {
                 background-color: #E30613;
                 color: white;
                 border: none;
                 font-weight: bold;
                 padding: 12px;
-                font-size: 16px;
+                font-size: 18px;
                 border-radius: 8px;
+                margin-top: 10px;
             }
             div.stButton > button:hover {
                 background-color: #b3050f;
@@ -68,29 +53,28 @@ if not st.session_state.autenticado:
         </style>
     """, unsafe_allow_html=True)
 
-    _, col_central, _ = st.columns([1, 1.5, 1])
+    # Centrado de pantalla
+    _, col_central, _ = st.columns([1, 1.4, 1])
 
     with col_central:
-        st.markdown('<div class="main-login-box">', unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
         
-        # Logo agrandado (Usando el link del logo de Eternit)
-        st.markdown(
-            """
-            <img src="https://static.wixstatic.com/media/01f016_369527f466b142f389973b318c47b19d~mv2.webp" 
-                 class="logo-grande" alt="Eternit Logo">
-            """, 
-            unsafe_allow_html=True
-        )
+        # LOGO AGRANDADO: Asegúrate de que el archivo 'ETERNIT LOGOS.webp' esté en la misma carpeta
+        # Si prefieres URL, reemplaza el nombre del archivo por la dirección web.
+        st.image("ETERNIT LOGOS.webp", use_container_width=True)
 
         st.markdown(
-            "<h2 style='text-align: center; color: #1A3A5A; font-family: sans-serif; font-weight: 800;'>Simulador de Cargue</h2>", 
+            """
+            <h2 style='text-align: center; color: #1A3A5A; font-family: sans-serif; font-weight: 800; margin-top: -10px;'>
+                SIMULADOR DE CARGUE
+            </h2>
+            """, 
             unsafe_allow_html=True
         )
 
         with st.container(border=True):
             usuario = st.text_input("Correo electrónico").upper()
             clave = st.text_input("Contraseña", type="password")
-            st.markdown("<br>", unsafe_allow_html=True)
             
             if st.button("Ingresar al Sistema", use_container_width=True):
                 if usuario == USUARIO_CORRECTO and clave == CLAVE_CORRECTA:
@@ -98,11 +82,9 @@ if not st.session_state.autenticado:
                     st.rerun()
                 else:
                     st.error("Credenciales incorrectas")
-        
-        st.markdown('</div>', unsafe_allow_html=True)
 
 else:
-    # --- INTERFAZ POST-LOGIN ---
+    # --- INTERFAZ DE LA APLICACIÓN ---
     st.markdown("""
     <style>
         .cabina { background: #1A3A5A; color: white; text-align: center; padding: 15px; font-weight: bold; border-radius: 8px 8px 0 0; border-bottom: 5px solid #bdc3c7; }
@@ -148,25 +130,23 @@ else:
         largo_req = max([PRODUCTOS_BASE[i['ref']]['largo_ft'] for i in pedido_items])
         c3.metric("Largo Requerido", f"{largo_req} ft")
 
-        # Distribución de Paquetes
+        st.markdown("---")
+        st.markdown('<div class="cabina">FRENTE DEL VEHÍCULO (CABINA)</div>', unsafe_allow_html=True)
+        
+        # Lógica de renderizado de carga... (Se mantiene igual a tu versión funcional)
         pedido_sorted = sorted(pedido_items, key=lambda x: PRODUCTOS_BASE[x['ref']]['largo_ft'], reverse=True)
         mapa_vertical = []
         saldos = []
-        
         for item in pedido_sorted:
             paq_tam = PRODUCTOS_BASE[item['ref']]['paquete']
             completos = item["cant"] // paq_tam
             sobra = item["cant"] % paq_tam
             for _ in range(completos): mapa_vertical.append({"label": item["tipo"], "cant": paq_tam})
-            if sobra > 0:
-                while sobra > 0:
-                    cant_s = min(sobra, 60)
-                    saldos.append({"label": item["tipo"], "cant": cant_s})
-                    sobra -= cant_s
+            while sobra > 0:
+                cant_s = min(sobra, 60)
+                saldos.append({"label": item["tipo"], "cant": cant_s})
+                sobra -= cant_s
 
-        st.markdown("---")
-        st.markdown('<div class="cabina">FRENTE DEL VEHÍCULO (CABINA)</div>', unsafe_allow_html=True)
-        
         paq_render = list(mapa_vertical)
         atravesado = paq_render.pop() if len(paq_render) % 2 != 0 else None
         rows = [paq_render[i:i+2] for i in range(0, len(paq_render), 2)]
@@ -189,4 +169,4 @@ else:
         if atravesado:
             st.markdown(f'<div class="paquete-h">📦 PAQUETE COMPLETO TRASERO<br>{atravesado["label"]} ({atravesado["cant"]} UND)</div>', unsafe_allow_html=True)
     else:
-        st.info("Cargue un pedido para visualizar la simulación.")
+        st.info("Cargue un pedido en el panel lateral para comenzar.")
