@@ -22,122 +22,161 @@ VEHICULOS = [
     {"tipo": "MULA", "capacidad_max": 34000, "largo_planchon_ft": 40},
 ]
 
-st.set_page_config(page_title="Eternit | Simulador", layout="wide")
+st.set_page_config(page_title="Smart Picking PRO", layout="wide")
 
 if "autenticado" not in st.session_state:
     st.session_state.autenticado = False
 
-# --- ESTILOS DE ÚLTIMA GENERACIÓN ---
-st.markdown("""
-    <style>
-        /* Importar fuente moderna */
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700&display=swap');
-        
-        html, body, [class*="st-"] {
-            font-family: 'Inter', sans-serif;
-        }
-
-        /* Eliminar elementos innecesarios de Streamlit */
-        [data-testid="stHeaderActionElements"], .stMarkdown h1 a, .stMarkdown h2 a { display: none; }
-
-        /* Contenedor principal de Login */
-        .login-card {
-            max-width: 400px;
-            margin: 0 auto;
-            padding: 40px;
-            background: #ffffff;
-            border-radius: 20px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
-            text-align: center;
-        }
-
-        /* Logo sutil y centrado */
-        .logo-img {
-            width: 180px; /* Tamaño más pequeño y elegante */
-            margin-bottom: 20px;
-        }
-
-        /* Título refinado */
-        .main-title {
-            color: #1A3A5A;
-            font-size: 28px;
-            font-weight: 700;
-            letter-spacing: -0.5px;
-            margin-bottom: 35px;
-        }
-
-        /* Personalización de inputs */
-        .stTextInput input {
-            border-radius: 10px !important;
-            border: 1px solid #f0f2f6 !important;
-            padding: 12px !important;
-        }
-
-        /* Botón minimalista */
-        div.stButton > button:first-child {
-            background-color: #E30613;
-            color: white;
-            border: none;
-            font-weight: 600;
-            padding: 14px;
-            border-radius: 12px;
-            width: 100%;
-            transition: all 0.3s ease;
-            margin-top: 15px;
-        }
-        div.stButton > button:hover {
-            background-color: #b3050f;
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(227, 6, 19, 0.3);
-        }
-    </style>
-""", unsafe_allow_html=True)
-
 # --- LOGIN ---
 if not st.session_state.autenticado:
-    # Centrado vertical sutil con columnas
-    _, col_central, _ = st.columns([1, 1.2, 1])
+    st.markdown("""
+        <style>
+            /* Eliminar iconos de enlace de Streamlit */
+            [data-testid="stHeaderActionElements"] { display: none; }
+            .stMarkdown h2 a { display: none; }
+            
+            /* Ajuste del botón institucional */
+            div.stButton > button:first-child {
+                background-color: #E30613;
+                color: white;
+                border: none;
+                font-weight: bold;
+                padding: 12px;
+                font-size: 18px;
+                border-radius: 8px;
+                margin-top: 10px;
+            }
+            div.stButton > button:hover {
+                background-color: #b3050f;
+                color: white;
+            }
+            
+            /* Contenedor para forzar el ancho de la imagen */
+            .logo-box {
+                width: 100%;
+                display: flex;
+                justify-content: center;
+                margin-bottom: -20px;
+            }
+        </style>
+    """, unsafe_allow_html=True)
+
+    # Centrar el bloque en la pantalla
+    _, col_central, _ = st.columns([1, 1.4, 1])
 
     with col_central:
-        st.markdown("<br><br><br>", unsafe_allow_html=True)
-        
-        # Envoltorio de la tarjeta
-        st.markdown('<div class="login-card">', unsafe_allow_html=True)
-        
-        # Logo pequeño (usando el nombre de tu archivo)
-        st.image("logo-eternit-400x150-1.png", width=200) #
-
-        # Título con tipografía mejorada
-        st.markdown('<p class="main-title">Simulador de Cargue</p>', unsafe_allow_html=True)
-
-        # Campos de entrada
-        usuario = st.text_input("Usuario", placeholder="ejemplo@eternit.com.co").upper()
-        clave = st.text_input("Contraseña", type="password", placeholder="••••••••")
-        
         st.markdown("<br>", unsafe_allow_html=True)
         
-        if st.button("Ingresar al Sistema"):
-            if usuario == USUARIO_CORRECTO and clave == CLAVE_CORRECTA:
-                st.session_state.autenticado = True
-                st.rerun()
-            else:
-                st.error("Acceso denegado. Verifique sus datos.")
-        
-        st.markdown('</div>', unsafe_allow_html=True)
+        # LOGO SOLICITADO: Usando el archivo logo-eternit-400x150-1.png
+        # 'use_container_width' hace que se ajuste al ancho de la columna/formulario
+        st.image("logo-eternit-400x150-1.png", use_container_width=True)
+
+        # Título más grande y centrado
+        st.markdown(
+            """
+            <h1 style='text-align: center; color: #1A3A5A; font-family: sans-serif; font-weight: 800; margin-top: 10px; font-size: 42px;'>
+                Simulador de Cargue
+            </h1>
+            """, 
+            unsafe_allow_html=True
+        )
+
+        # Formulario con borde
+        with st.container(border=True):
+            usuario = st.text_input("Correo electrónico").upper()
+            clave = st.text_input("Contraseña", type="password")
+            
+            if st.button("Ingresar al Sistema", use_container_width=True):
+                if usuario == USUARIO_CORRECTO and clave == CLAVE_CORRECTA:
+                    st.session_state.autenticado = True
+                    st.rerun()
+                else:
+                    st.error("Credenciales incorrectas")
 
 else:
-    # --- INTERFAZ DE CARGA (App principal) ---
-    st.sidebar.image("logo-eternit-400x150-1.png", width=150)
-    st.sidebar.title("Configuración")
-    
-    raw_data = st.sidebar.text_area("Pegue el pedido aquí:", height=250)
-    
-    if st.sidebar.button("Cerrar Sesión"):
-        st.session_state.autenticado = False
-        st.rerun()
+    # --- INTERFAZ PRINCIPAL (DESPUÉS DEL LOGIN) ---
+    st.markdown("""
+    <style>
+        .cabina { background: #1A3A5A; color: white; text-align: center; padding: 15px; font-weight: bold; border-radius: 8px 8px 0 0; border-bottom: 5px solid #bdc3c7; }
+        .paquete-v { background: #27ae60; color: white; text-align: center; padding: 12px; margin: 4px; border-radius: 5px; font-weight: bold; border: 1px solid #1e8449; }
+        .paquete-h { background: #2980b9; color: white; text-align: center; padding: 15px; margin: 10px auto; border-radius: 6px; font-weight: bold; border: 2px dashed #ecf0f1; width: 80%; }
+        .saldo-box { background: #f1c40f; color: #2c3e50; text-align: center; padding: 8px; margin: 4px; border-radius: 5px; font-size: 11px; font-weight: 800; border: 1px solid #d4ac0d; }
+        .stMetric { background: #ffffff; padding: 15px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border-left: 5px solid #E30613; }
+    </style>
+    """, unsafe_allow_html=True)
 
+    with st.sidebar:
+        st.header("📋 Carga de Pedido")
+        raw_data = st.text_area("Pegue el pedido aquí:", height=300)
+        if st.button("Limpiar Datos"):
+            st.rerun()
+
+    pedido_items = []
+    peso_total_pedido = 0
+    
     if raw_data:
-        # (Aquí iría tu lógica de procesamiento de pedido que ya funciona)
-        st.success("Pedido cargado correctamente")
+        lines = raw_data.strip().split('\n')
+        for line in lines:
+            line_upper = line.upper().strip()
+            match_ref = re.search(r'#(\d+)', line_upper)
+            if match_ref:
+                num_ref = match_ref.group(1)
+                if num_ref in PRODUCTOS_BASE:
+                    numeros = re.findall(r'\d+', line_upper.replace(f"#{num_ref}", ""))
+                    if numeros:
+                        cant = int(numeros[-1])
+                        info = PRODUCTOS_BASE[num_ref]
+                        nombre = f"FLEX. #{num_ref}" if "FLEXIFORTE" in line_upper else f"TEJA #{num_ref}"
+                        pedido_items.append({"tipo": nombre, "cant": cant, "peso": cant * info["peso"], "ref": num_ref})
+                        peso_total_pedido += cant * info["peso"]
+
+    if pedido_items:
+        vh = next((v for v in VEHICULOS if v["capacidad_max"] >= peso_total_pedido), VEHICULOS[-1])
+        st.markdown(f"### 🚛 Vehículo Sugerido: {vh['tipo']}")
+
+        c1, c2, c3 = st.columns(3)
+        c1.metric("Peso Total", f"{peso_total_pedido:,.2f} kg")
+        c2.metric("Capacidad", f"{vh['capacidad_max']:,.0f} kg")
+        largo_req = max([PRODUCTOS_BASE[i['ref']]['largo_ft'] for i in pedido_items])
+        c3.metric("Largo Requerido", f"{largo_req} ft")
+
+        st.markdown("---")
+        st.markdown('<div class="cabina">FRENTE DEL VEHÍCULO (CABINA)</div>', unsafe_allow_html=True)
+        
+        # --- Lógica de distribución ---
+        pedido_sorted = sorted(pedido_items, key=lambda x: PRODUCTOS_BASE[x['ref']]['largo_ft'], reverse=True)
+        mapa_vertical = []
+        saldos = []
+        for item in pedido_sorted:
+            paq_tam = PRODUCTOS_BASE[item['ref']]['paquete']
+            completos = item["cant"] // paq_tam
+            sobra = item["cant"] % paq_tam
+            for _ in range(completos): mapa_vertical.append({"label": item["tipo"], "cant": paq_tam})
+            while sobra > 0:
+                cant_s = min(sobra, 60)
+                saldos.append({"label": item["tipo"], "cant": cant_s})
+                sobra -= cant_s
+
+        paq_render = list(mapa_vertical)
+        atravesado = paq_render.pop() if len(paq_render) % 2 != 0 else None
+        rows = [paq_render[i:i+2] for i in range(0, len(paq_render), 2)]
+        saldos_render = list(saldos)
+
+        for row in rows:
+            cols = st.columns([1, 1.5, 1.5, 1])
+            with cols[0]:
+                if saldos_render:
+                    s = saldos_render.pop(0)
+                    st.markdown(f'<div class="saldo-box">{s["label"]}<br>{s["cant"]} UND</div>', unsafe_allow_html=True)
+            with cols[1]: st.markdown(f'<div class="paquete-v">{row[0]["label"]}<br>({row[0]["cant"]})</div>', unsafe_allow_html=True)
+            with cols[2]:
+                if len(row) > 1: st.markdown(f'<div class="paquete-v">{row[1]["label"]}<br>({row[1]["cant"]})</div>', unsafe_allow_html=True)
+            with cols[3]:
+                if saldos_render:
+                    s = saldos_render.pop(0)
+                    st.markdown(f'<div class="saldo-box">{s["label"]}<br>{s["cant"]} UND</div>', unsafe_allow_html=True)
+
+        if atravesado:
+            st.markdown(f'<div class="paquete-h">📦 PAQUETE COMPLETO TRASERO<br>{atravesado["label"]} ({atravesado["cant"]} UND)</div>', unsafe_allow_html=True)
     else:
-        st.info("👋 Bienvenido. Por favor use el panel lateral para cargar la información del pedido.")
+        st.info("Cargue un pedido en el panel lateral para visualizar la simulación.")
