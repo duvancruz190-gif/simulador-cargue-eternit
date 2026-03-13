@@ -31,11 +31,11 @@ if "autenticado" not in st.session_state:
 if not st.session_state.autenticado:
     st.markdown("""
         <style>
-            /* Eliminar iconos de enlace y mejorar tipografía */
+            /* Eliminar iconos de enlace de Streamlit */
             [data-testid="stHeaderActionElements"] { display: none; }
             .stMarkdown h2 a { display: none; }
             
-            /* Botón Rojo Eternit */
+            /* Ajuste del botón institucional */
             div.stButton > button:first-child {
                 background-color: #E30613;
                 color: white;
@@ -50,28 +50,38 @@ if not st.session_state.autenticado:
                 background-color: #b3050f;
                 color: white;
             }
+            
+            /* Contenedor para forzar el ancho de la imagen */
+            .logo-box {
+                width: 100%;
+                display: flex;
+                justify-content: center;
+                margin-bottom: -20px;
+            }
         </style>
     """, unsafe_allow_html=True)
 
-    # Centrado de pantalla
+    # Centrar el bloque en la pantalla
     _, col_central, _ = st.columns([1, 1.4, 1])
 
     with col_central:
         st.markdown("<br>", unsafe_allow_html=True)
         
-        # LOGO AGRANDADO: Asegúrate de que el archivo 'logo-eternit-400x15-1.png' esté en la misma carpeta
-        # Si prefieres URL, reemplaza el nombre del archivo por la dirección web.
-        st.image("logo-eternit-400x15-1.png", use_container_width=True)
+        # LOGO SOLICITADO: Usando el archivo logo-eternit-400x150-1.png
+        # 'use_container_width' hace que se ajuste al ancho de la columna/formulario
+        st.image("logo-eternit-400x150-1.png", use_container_width=True)
 
+        # Título más grande y centrado
         st.markdown(
             """
-            <h2 style='text-align: center; color: #1A3A5A; font-family: sans-serif; font-weight: 800; margin-top: -10px;'>
-                SIMULADOR DE CARGUE
-            </h2>
+            <h1 style='text-align: center; color: #1A3A5A; font-family: sans-serif; font-weight: 800; margin-top: 10px; font-size: 42px;'>
+                Simulador de Cargue
+            </h1>
             """, 
             unsafe_allow_html=True
         )
 
+        # Formulario con borde
         with st.container(border=True):
             usuario = st.text_input("Correo electrónico").upper()
             clave = st.text_input("Contraseña", type="password")
@@ -84,7 +94,7 @@ if not st.session_state.autenticado:
                     st.error("Credenciales incorrectas")
 
 else:
-    # --- INTERFAZ DE LA APLICACIÓN ---
+    # --- INTERFAZ PRINCIPAL (DESPUÉS DEL LOGIN) ---
     st.markdown("""
     <style>
         .cabina { background: #1A3A5A; color: white; text-align: center; padding: 15px; font-weight: bold; border-radius: 8px 8px 0 0; border-bottom: 5px solid #bdc3c7; }
@@ -133,7 +143,7 @@ else:
         st.markdown("---")
         st.markdown('<div class="cabina">FRENTE DEL VEHÍCULO (CABINA)</div>', unsafe_allow_html=True)
         
-        # Lógica de renderizado de carga... (Se mantiene igual a tu versión funcional)
+        # --- Lógica de distribución ---
         pedido_sorted = sorted(pedido_items, key=lambda x: PRODUCTOS_BASE[x['ref']]['largo_ft'], reverse=True)
         mapa_vertical = []
         saldos = []
@@ -169,4 +179,4 @@ else:
         if atravesado:
             st.markdown(f'<div class="paquete-h">📦 PAQUETE COMPLETO TRASERO<br>{atravesado["label"]} ({atravesado["cant"]} UND)</div>', unsafe_allow_html=True)
     else:
-        st.info("Cargue un pedido en el panel lateral para comenzar.")
+        st.info("Cargue un pedido en el panel lateral para visualizar la simulación.")
