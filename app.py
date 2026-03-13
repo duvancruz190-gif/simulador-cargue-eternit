@@ -30,7 +30,27 @@ if "autenticado" not in st.session_state:
 
 # --- LOGIN ---
 if not st.session_state.autenticado:
-    # Contenedor central para el login
+    # CSS específico para el Login
+    st.markdown("""
+        <style>
+            /* Quitar el icono de enlace de los títulos */
+            [data-testid="stHeaderActionElements"] { display: none; }
+            .stMarkdown h3 a { display: none; }
+            
+            /* Ajustar el botón al rojo institucional */
+            div.stButton > button:first-child {
+                background-color: #E30613;
+                color: white;
+                border: none;
+            }
+            div.stButton > button:hover {
+                background-color: #b3050f;
+                color: white;
+                border: none;
+            }
+        </style>
+    """, unsafe_allow_html=True)
+
     _, col_central, _ = st.columns([1, 1.2, 1])
 
     with col_central:
@@ -41,15 +61,24 @@ if not st.session_state.autenticado:
         with col_img_2:
             st.image("ETERNIT LOGOS.webp", use_container_width=True)
 
-        # Título más pequeño y estilizado
+        # Título limpio
         st.markdown(
-            """
-            <h3 style='text-align: center; color: #34495e; font-family: sans-serif; margin-bottom: 30px;'>
-                Simulador de Cargue
-            </h3>
-            """, 
+            "<h3 style='text-align: center; color: #1A3A5A; margin-bottom: 30px;'>Simulador de Cargue</h3>", 
             unsafe_allow_html=True
         )
+
+        # Formulario
+        with st.container(border=True):
+            usuario = st.text_input("Correo electrónico").upper()
+            clave = st.text_input("Contraseña", type="password")
+            st.markdown("<br>", unsafe_allow_html=True)
+            
+            if st.button("Ingresar al Sistema", use_container_width=True):
+                if usuario == USUARIO_CORRECTO and clave == CLAVE_CORRECTA:
+                    st.session_state.autenticado = True
+                    st.rerun()
+                else:
+                    st.error("Credenciales incorrectas")
 
         # Formulario de Login
         with st.container(border=True):
