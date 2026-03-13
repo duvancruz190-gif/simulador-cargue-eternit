@@ -30,18 +30,20 @@ if "autenticado" not in st.session_state:
 
 # --- LOGIN ---
 if not st.session_state.autenticado:
-    # CSS específico para el Login
+    # Estilos específicos para un Login impecable
     st.markdown("""
         <style>
-            /* Quitar el icono de enlace de los títulos */
+            /* Eliminar iconos de enlace en títulos */
             [data-testid="stHeaderActionElements"] { display: none; }
-            .stMarkdown h3 a { display: none; }
+            .stMarkdown h2 a, .stMarkdown h3 a { display: none; }
             
-            /* Ajustar el botón al rojo institucional */
+            /* Personalización del botón */
             div.stButton > button:first-child {
                 background-color: #E30613;
                 color: white;
                 border: none;
+                font-weight: bold;
+                padding: 10px;
             }
             div.stButton > button:hover {
                 background-color: #b3050f;
@@ -51,23 +53,28 @@ if not st.session_state.autenticado:
         </style>
     """, unsafe_allow_html=True)
 
+    # Contenedor de Login
     _, col_central, _ = st.columns([1, 1.2, 1])
 
     with col_central:
         st.markdown("<br><br>", unsafe_allow_html=True)
         
-        # Centrar Imagen
+        # Centrar Imagen de Logo
         col_img_1, col_img_2, col_img_3 = st.columns([1, 2, 1])
         with col_img_2:
             st.image("ETERNIT LOGOS.webp", use_container_width=True)
 
-        # Título limpio
+        # Título más grande y centrado
         st.markdown(
-            "<h3 style='text-align: center; color: #1A3A5A; margin-bottom: 30px;'>Simulador de Cargue</h3>", 
+            """
+            <h2 style='text-align: center; color: #1A3A5A; font-family: sans-serif; margin-bottom: 30px; font-weight: 700;'>
+                Simulador de Cargue
+            </h2>
+            """, 
             unsafe_allow_html=True
         )
 
-        # Formulario
+        # Cuadro de Formulario
         with st.container(border=True):
             usuario = st.text_input("Correo electrónico").upper()
             clave = st.text_input("Contraseña", type="password")
@@ -78,24 +85,10 @@ if not st.session_state.autenticado:
                     st.session_state.autenticado = True
                     st.rerun()
                 else:
-                    st.error("Credenciales incorrectas")
-
-        # Formulario de Login
-        with st.container(border=True):
-            usuario = st.text_input("Correo electrónico").upper()
-            clave = st.text_input("Contraseña", type="password")
-            
-            st.markdown("<br>", unsafe_allow_html=True)
-            
-            if st.button("Ingresar al Sistema", use_container_width=True, type="primary"):
-                if usuario == USUARIO_CORRECTO and clave == CLAVE_CORRECTA:
-                    st.session_state.autenticado = True
-                    st.rerun()
-                else:
-                    st.error("Credenciales incorrectas")
+                    st.error("Acceso denegado: Credenciales incorrectas")
 
 else:
-    # 2. ESTILOS CSS PARA LA APLICACIÓN PRINCIPAL
+    # --- INTERFAZ PRINCIPAL (DESPUÉS DEL LOGIN) ---
     st.markdown("""
     <style>
         .cabina { background: #1A3A5A; color: white; text-align: center; padding: 15px; font-weight: bold; border-radius: 8px 8px 0 0; margin-bottom:10px; border-bottom: 5px solid #bdc3c7; }
@@ -119,7 +112,6 @@ else:
     
     if raw_data:
         lines = raw_data.strip().split('\n')
-
         for line in lines:
             line_upper = line.upper().strip()
             if not line_upper: continue
