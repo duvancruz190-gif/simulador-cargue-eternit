@@ -1,20 +1,20 @@
 import streamlit as st
 import pandas as pd
+import re
 
 # 1. CONFIGURACIÓN Y DATOS TÉCNICOS
 USUARIO_CORRECTO = "DUVANCRUZ190@GMAIL.COM"
 CLAVE_CORRECTA = "Du854872*"
 
-# Base de datos de productos según tu imagen
-PRODUCTOS = {
-    "TEJA #4": {"peso": 11.82, "paquete": 130, "largo_ft": 4},
-    "TEJA #5": {"peso": 14.77, "paquete": 130, "largo_ft": 5},
-    "TEJA #6": {"peso": 17.72, "paquete": 130, "largo_ft": 6},
-    "TEJA #8": {"peso": 23.63, "paquete": 130, "largo_ft": 8},
-    "TEJA #10": {"peso": 29.54, "paquete": 100, "largo_ft": 10},
+# Base de datos de productos
+PRODUCTOS_BASE = {
+    "4": {"peso": 11.82, "paquete": 130, "largo_ft": 4},
+    "5": {"peso": 14.77, "paquete": 130, "largo_ft": 5},
+    "6": {"peso": 17.72, "paquete": 130, "largo_ft": 6},
+    "8": {"peso": 23.63, "paquete": 130, "largo_ft": 8},
+    "10": {"peso": 29.54, "paquete": 100, "largo_ft": 10},
 }
 
-# Base de datos de vehículos
 VEHICULOS = [
     {"tipo": "TURBO", "capacidad_max": 5000, "largo_planchon_ft": 16},
     {"tipo": "SENCILLO", "capacidad_max": 10000, "largo_planchon_ft": 20},
@@ -25,120 +25,183 @@ VEHICULOS = [
 
 st.set_page_config(page_title="Smart Picking PRO", layout="wide")
 
-# --- FUNCION DE LOGIN ---
-def login():
-    if "autenticado" not in st.session_state:
-        st.session_state.autenticado = False
-    if not st.session_state.autenticado:
-        col1, col2, col3 = st.columns([1, 2, 1])
-        with col2:
+if "autenticado" not in st.session_state:
+    st.session_state.autenticado = False
+
+# --- LOGIN ---
+if not st.session_state.autenticado:
+    # Estilos específicos para un Login impecable
+    st.markdown("""
+        <style>
+            /* Eliminar iconos de enlace en títulos */
+            [data-testid="stHeaderActionElements"] { display: none; }
+            .stMarkdown h2 a, .stMarkdown h3 a { display: none; }
+            
+            /* Personalización del botón */
+            div.stButton > button:first-child {
+                background-color: #E30613;
+                color: white;
+                border: none;
+                font-weight: bold;
+                padding: 10px;
+            }
+            div.stButton > button:hover {
+                background-color: #b3050f;
+                color: white;
+                border: none;
+            }
+        </style>
+    """, unsafe_allow_html=True)
+
+    # Contenedor de Login
+    _, col_central, _ = st.columns([1, 1.2, 1])
+
+    with col_central:
+        st.markdown("<br><br>", unsafe_allow_html=True)
+        
+        # Centrar Imagen de Logo
+        col_img_1, col_img_2, col_img_3 = st.columns([1, 2, 1])
+        with col_img_2:
             st.image("ETERNIT LOGOS.webp", use_container_width=True)
+
+        # Título más grande y centrado
+        st.markdown(
+            """
+            <h2 style='text-align: center; color: #1A3A5A; font-family: sans-serif; margin-bottom: 30px; font-weight: 700;'>
+                Simulador de Cargue
+            </h2>
+            """, 
+            unsafe_allow_html=True
+        )
+
+        # Cuadro de Formulario
+        with st.container(border=True):
             usuario = st.text_input("Correo electrónico").upper()
             clave = st.text_input("Contraseña", type="password")
-            if st.button("Ingresar", use_container_width=True):
+            st.markdown("<br>", unsafe_allow_html=True)
+            
+            if st.button("Ingresar al Sistema", use_container_width=True):
                 if usuario == USUARIO_CORRECTO and clave == CLAVE_CORRECTA:
                     st.session_state.autenticado = True
                     st.rerun()
                 else:
-                    st.error("Acceso denegado")
-        return False
-    return True
+                    st.error("Acceso denegado: Credenciales incorrectas")
 
-if login():
-    # 2. ESTILOS CSS
+else:
+    # --- INTERFAZ PRINCIPAL (DESPUÉS DEL LOGIN) ---
     st.markdown("""
     <style>
-        .cabina { background: #1A3A5A; color: white; text-align: center; padding: 10px; font-weight: bold; border-radius: 5px; }
-        .paquete-v { background: #27ae60; color: white; text-align: center; padding: 10px; margin: 2px; border-radius: 4px; font-size: 12px; }
-        .paquete-h { background: #2980b9; color: white; text-align: center; padding: 15px; margin: 5px; border-radius: 4px; font-weight: bold; border: 2px dashed white; }
-        .saldo-box { background: #f1c40f; color: black; text-align: center; padding: 10px; margin: 2px; border-radius: 4px; font-size: 12px; }
-        .stMetric { background: #f8f9fa; padding: 10px; border-radius: 10px; border-left: 5px solid #E30613; }
+        .cabina { background: #1A3A5A; color: white; text-align: center; padding: 15px; font-weight: bold; border-radius: 8px 8px 0 0; margin-bottom:10px; border-bottom: 5px solid #bdc3c7; }
+        .paquete-v { background: #27ae60; color: white; text-align: center; padding: 12px; margin: 4px; border-radius: 5px; font-size: 13px; font-weight: bold; border: 1px solid #1e8449; }
+        .paquete-h { background: #2980b9; color: white; text-align: center; padding: 15px; margin: 10px auto; border-radius: 6px; font-weight: bold; border: 2px dashed #ecf0f1; width: 80%; }
+        .saldo-box { background: #f1c40f; color: #2c3e50; text-align: center; padding: 8px; margin: 4px; border-radius: 5px; font-size: 11px; font-weight: 800; border: 1px solid #d4ac0d; line-height: 1.2; }
+        .stMetric { background: #ffffff; padding: 15px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border-left: 5px solid #E30613; }
     </style>
     """, unsafe_allow_html=True)
 
-    # 3. ENTRADA DE DATOS (EXCEL COPY-PASTE)
     with st.sidebar:
         st.header("📋 Carga de Pedido")
-        raw_data = st.text_area("Pegue aquí el pedido desde Excel (Nombre y Cantidad):", placeholder="TEJA #4 500\nTEJA #6 200")
-        
+        raw_data = st.text_area("Pegue aquí el pedido:", height=300, placeholder="Ejemplo:\nTEJA FLEXIFORTE #5 900\nTEJA PERFIL #4 150")
+
         if st.button("Limpiar Datos"):
             st.rerun()
 
-    # Procesar datos pegados
+    # --- LÓGICA DE PROCESAMIENTO ---
     pedido_items = []
     peso_total_pedido = 0
+    
     if raw_data:
         lines = raw_data.strip().split('\n')
         for line in lines:
-            parts = line.split()
-            for key in PRODUCTOS.keys():
-                if key in line.upper():
-                    try:
-                        cant = int(parts[-1])
-                        peso_item = cant * PRODUCTOS[key]["peso"]
-                        pedido_items.append({"tipo": key, "cant": cant, "peso": peso_item})
-                        peso_total_pedido += peso_item
-                    except: pass
+            line_upper = line.upper().strip()
+            if not line_upper: continue
+            
+            match_ref = re.search(r'#(\d+)', line_upper)
+            if match_ref:
+                num_ref = match_ref.group(1)
+                if num_ref in PRODUCTOS_BASE:
+                    numeros = re.findall(r'\d+', line_upper.replace(f"#{num_ref}", ""))
+                    if numeros:
+                        cant = int(numeros[-1])
+                        info = PRODUCTOS_BASE[num_ref]
+                        nombre_mostrar = f"FLEX. #{num_ref}" if "FLEXIFORTE" in line_upper else f"TEJA #{num_ref}"
+                        
+                        pedido_items.append({
+                            "tipo": nombre_mostrar,
+                            "cant": cant,
+                            "peso": cant * info["peso"],
+                            "ref": num_ref
+                        })
+                        peso_total_pedido += cant * info["peso"]
 
     if pedido_items:
-        # 4. SELECCIÓN AUTOMÁTICA DE VEHÍCULO
         vh_asignado = next((v for v in VEHICULOS if v["capacidad_max"] >= peso_total_pedido), VEHICULOS[-1])
         
-        # UI DE RESUMEN
         st.markdown(f"### 🚛 Vehículo Sugerido: {vh_asignado['tipo']}")
-        c1, c2, c3 = st.columns(3)
-        c1.metric("Peso Total", f"{peso_total_pedido:,.2f} kg")
-        c2.metric("Capacidad VH", f"{vh_asignado['capacidad_max']:,.0f} kg")
-        c3.metric("Largo Disponible", f"{vh_asignado['largo_planchon_ft']} ft")
 
-        # 5. LÓGICA DE DISTRIBUCIÓN
-        # Simplificación: Ponemos los paquetes más largos al frente (cabina) para estabilidad
-        pedido_items = sorted(pedido_items, key=lambda x: PRODUCTOS[x["tipo"]]["largo_ft"], reverse=True)
-        
+        c1, c2, c3 = st.columns(3)
+        c1.metric("Peso Total Estimado", f"{peso_total_pedido:,.2f} kg")
+        c2.metric("Capacidad Vehículo", f"{vh_asignado['capacidad_max']:,.0f} kg")
+        largo_req = max([PRODUCTOS_BASE[i['ref']]['largo_ft'] for i in pedido_items])
+        c3.metric("Largo de Carga", f"{largo_req} ft")
+
+        # --- DISTRIBUCIÓN LÓGICA ---
+        pedido_sorted = sorted(pedido_items, key=lambda x: PRODUCTOS_BASE[x['ref']]['largo_ft'], reverse=True)
         mapa_vertical = []
         saldos = []
-        
-        for item in pedido_items:
-            paq_tam = PRODUCTOS[item["tipo"]]["paquete"]
+        MAX_SALDO_UNIDADES = 60
+
+        for item in pedido_sorted:
+            paq_tam = PRODUCTOS_BASE[item['ref']]['paquete']
             completos = item["cant"] // paq_tam
-            sobra = item["cant"] % paq_tam
+            sobra_total = item["cant"] % paq_tam
             
             for _ in range(completos):
-                mapa_vertical.append({"label": f"{item['tipo']}", "cant": paq_tam})
-            if sobra > 0:
-                saldos.append({"label": f"S. {item['tipo']}", "cant": sobra})
+                mapa_vertical.append({"label": item["tipo"], "cant": paq_tam})
+            
+            while sobra_total > 0:
+                unidades_saldo = min(sobra_total, MAX_SALDO_UNIDADES)
+                saldos.append({"label": item["tipo"], "cant": unidades_saldo})
+                sobra_total -= unidades_saldo
 
-        # 6. VISUALIZACIÓN DEL MAPA DE CARGA
+        # --- MAPA VISUAL ---
         st.markdown("---")
         st.markdown('<div class="cabina">FRENTE DEL VEHÍCULO (CABINA)</div>', unsafe_allow_html=True)
         
-        # El planchón se divide en filas de 2 paquetes (izquierda y derecha)
-        rows = [mapa_vertical[i:i + 2] for i in range(0, len(mapa_vertical), 2)]
-        
-        # Espacio para el paquete horizontal (Atravesado) al final si es necesario
-        atravesado = None
-        if len(mapa_vertical) % 2 != 0: # Si quedó uno solo, lo mandamos al final
-            atravesado = mapa_vertical.pop()
+        paquetes_render = list(mapa_vertical)
+        atravesado = paquetes_render.pop() if len(paquetes_render) % 2 != 0 else None
+        rows_completos = [paquetes_render[i:i+2] for i in range(0, len(paquetes_render), 2)]
+        saldos_render = list(saldos)
 
-        # Render Vertical
-        for row in rows:
-            cols = st.columns(4) # Columnas: Saldo | Paq | Paq | Saldo
+        for row in rows_completos:
+            cols = st.columns([1, 1.5, 1.5, 1])
+            with cols[0]:
+                if saldos_render:
+                    s = saldos_render.pop(0)
+                    st.markdown(f'<div class="saldo-box">{s["label"]}<br>{s["cant"]} UND</div>', unsafe_allow_html=True)
             with cols[1]:
-                if len(row) > 0: st.markdown(f'<div class="paquete-v">{row[0]["label"]}<br>({row[0]["cant"]})</div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="paquete-v">{row[0]["label"]}<br>({row[0]["cant"]})</div>', unsafe_allow_html=True)
             with cols[2]:
-                if len(row) > 1: st.markdown(f'<div class="paquete-v">{row[1]["label"]}<br>({row[1]["cant"]})</div>', unsafe_allow_html=True)
+                if len(row) > 1:
+                    st.markdown(f'<div class="paquete-v">{row[1]["label"]}<br>({row[1]["cant"]})</div>', unsafe_allow_html=True)
+            with cols[3]:
+                if saldos_render:
+                    s = saldos_render.pop(0)
+                    st.markdown(f'<div class="saldo-box">{s["label"]}<br>{s["cant"]} UND</div>', unsafe_allow_html=True)
 
-        # Render Saldos (Parte superior/encima de la carga)
-        if saldos:
-            st.markdown("**📦 Saldos (Cargar encima de los paquetes):**")
-            s_cols = st.columns(len(saldos) if len(saldos) < 5 else 5)
-            for idx, s in enumerate(saldos):
-                with s_cols[idx % 5]:
-                    st.markdown(f'<div class="saldo-box">{s["label"]}<br>Unidades: {s["cant"]}</div>', unsafe_allow_html=True)
+        while saldos_render:
+            cols_ex = st.columns([1, 1.5, 1.5, 1])
+            with cols_ex[0]:
+                if saldos_render:
+                    s = saldos_render.pop(0)
+                    st.markdown(f'<div class="saldo-box">{s["label"]}<br>{s["cant"]} UND</div>', unsafe_allow_html=True)
+            with cols_ex[3]:
+                if saldos_render:
+                    s = saldos_render.pop(0)
+                    st.markdown(f'<div class="saldo-box">{s["label"]}<br>{s["cant"]} UND</div>', unsafe_allow_html=True)
 
-        # Render Paquete Atravesado (Horizontal)
         if atravesado:
-            st.markdown('<div class="paquete-h">📦 PAQUETE HORIZONTAL (ATRAVESADO TRASERO)<br>' + atravesado["label"] + '</div>', unsafe_allow_html=True)
-
+            st.markdown(f'<div class="paquete-h">📦 PAQUETE COMPLETO TRASERO<br>{atravesado["label"]} ({atravesado["cant"]} UND)</div>', unsafe_allow_html=True)
+            
     else:
-        st.info("Escriba o pegue un pedido en la barra lateral para generar el mapa de carga.")
+        st.info("Esperando datos del pedido... Copia y pega el contenido del pedido en la barra lateral.")
