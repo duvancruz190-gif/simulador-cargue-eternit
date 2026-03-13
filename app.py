@@ -1,3 +1,4 @@
+```python
 import streamlit as st
 import pandas as pd
 import re
@@ -23,11 +24,10 @@ VEHICULOS = [
     {"tipo": "MULA", "capacidad_max": 34000, "largo_planchon_ft": 40},
 ]
 
-st.set_page_config(page_title="Smart Picking PRO", layout="wide")
+st.set_page_config(page_title="Simulador de Cargue", layout="wide")
 
 if "autenticado" not in st.session_state:
     st.session_state.autenticado = False
-
 
 # -------- LOGIN --------
 if not st.session_state.autenticado:
@@ -38,7 +38,7 @@ if not st.session_state.autenticado:
 
         st.markdown("<div style='text-align:center;'>", unsafe_allow_html=True)
 
-        st.image("ETERNIT LOGOS.webp", width=180)
+        st.image("ETERNIT LOGOS.webp", width=170)
 
         st.markdown(
             "<h3 style='text-align:center; margin-top:10px;'>SIMULADOR DE CARGUE</h3>",
@@ -57,10 +57,29 @@ if not st.session_state.autenticado:
             else:
                 st.error("Acceso denegado")
 
-
+# -------- SISTEMA --------
 else:
 
-    # 2. ESTILOS CSS
+    # BARRA SUPERIOR CORPORATIVA
+    st.markdown(
+    """
+    <div style="
+    background-color:#E30613;
+    padding:12px;
+    border-radius:8px;
+    text-align:center;
+    color:white;
+    font-weight:bold;
+    font-size:20px;
+    margin-bottom:15px;
+    ">
+    SIMULADOR DE CARGUE - LOGÍSTICA ETERNIT
+    </div>
+    """,
+    unsafe_allow_html=True
+    )
+
+    # ESTILOS CSS
     st.markdown("""
     <style>
         .cabina { background: #1A3A5A; color: white; text-align: center; padding: 15px; font-weight: bold; border-radius: 8px 8px 0 0; margin-bottom:10px; border-bottom: 5px solid #bdc3c7; }
@@ -86,7 +105,7 @@ else:
 
     pedido_items = []
     peso_total_pedido = 0
-
+    
     if raw_data:
 
         lines = raw_data.strip().split('\n')
@@ -97,7 +116,7 @@ else:
 
             if not line_upper:
                 continue
-
+            
             match_ref = re.search(r'#(\d+)', line_upper)
 
             if match_ref:
@@ -142,11 +161,7 @@ else:
 
         c3.metric("Largo de Carga", f"{largo_req} ft")
 
-        pedido_sorted = sorted(
-            pedido_items,
-            key=lambda x: PRODUCTOS_BASE[x['ref']]['largo_ft'],
-            reverse=True
-        )
+        pedido_sorted = sorted(pedido_items, key=lambda x: PRODUCTOS_BASE[x['ref']]['largo_ft'], reverse=True)
 
         mapa_vertical = []
         saldos = []
@@ -159,16 +174,19 @@ else:
 
             completos = item["cant"] // paq_tam
             sobra_total = item["cant"] % paq_tam
-
+            
             for _ in range(completos):
                 mapa_vertical.append({"label": item["tipo"], "cant": paq_tam})
-
+            
             while sobra_total > 0:
 
                 if sobra_total > MAX_SALDO_UNIDADES:
+
                     saldos.append({"label": item["tipo"], "cant": MAX_SALDO_UNIDADES})
                     sobra_total -= MAX_SALDO_UNIDADES
+
                 else:
+
                     saldos.append({"label": item["tipo"], "cant": sobra_total})
                     sobra_total = 0
 
@@ -222,3 +240,4 @@ else:
 
     else:
         st.info("Esperando datos del pedido... Copia y pega el contenido del pedido en la barra lateral.")
+```
