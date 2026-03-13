@@ -59,7 +59,7 @@ if not st.session_state.autenticado:
     with col_central:
         st.markdown("<br>", unsafe_allow_html=True)
         
-        # LOGO AGRANDADO: Asegúrate de que el archivo 'ETERNIT LOGOS.webp' esté en la misma carpeta
+        # LOGO AGRANDADO: Asegúrate de que el archivo 'logo-eternit-400x15-1.png' esté en la misma carpeta
         # Si prefieres URL, reemplaza el nombre del archivo por la dirección web.
         st.image("ETERNIT LOGOS.webp", use_container_width=True)
 
