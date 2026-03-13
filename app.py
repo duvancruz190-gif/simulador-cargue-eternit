@@ -30,20 +30,35 @@ if "autenticado" not in st.session_state:
 
 # --- LOGIN ---
 if not st.session_state.autenticado:
-    # Estilos específicos para un Login impecable
+    # Contenedor principal de Login con CSS forzado para el ancho
     st.markdown("""
         <style>
             /* Eliminar iconos de enlace en títulos */
             [data-testid="stHeaderActionElements"] { display: none; }
             .stMarkdown h2 a, .stMarkdown h3 a { display: none; }
             
-            /* Personalización del botón */
+            /* Contenedor forzado para el mismo ancho */
+            .fixed-width-container {
+                width: 100%;
+                max-width: 450px; /* Forzar ancho máximo idéntico */
+                margin: 0 auto; /* Centrar en la columna */
+            }
+
+            /* Contenedor específico para el logo */
+            .logo-container {
+                display: flex;
+                justify-content: center; /* Centrar logo dentro del contenedor */
+                margin-bottom: 25px; /* Separación con el título */
+            }
+
+            /* Personalización del botón institucional */
             div.stButton > button:first-child {
                 background-color: #E30613;
                 color: white;
                 border: none;
                 font-weight: bold;
                 padding: 10px;
+                border-radius: 5px;
             }
             div.stButton > button:hover {
                 background-color: #b3050f;
@@ -53,22 +68,34 @@ if not st.session_state.autenticado:
         </style>
     """, unsafe_allow_html=True)
 
-    # Contenedor de Login
+    # Columnas para centrar todo el bloque en la pantalla
     _, col_central, _ = st.columns([1, 1.2, 1])
 
     with col_central:
         st.markdown("<br><br>", unsafe_allow_html=True)
         
-        # Centrar Imagen de Logo
-        col_img_1, col_img_2, col_img_3 = st.columns([1, 2, 1])
-        with col_img_2:
-            st.image("ETERNIT LOGOS.webp", use_container_width=True)
+        # Envolver todo en un div con ancho fijo para igualar
+        st.markdown('<div class="fixed-width-container">', unsafe_allow_html=True)
 
-        # Título más grande y centrado
+        # Contenedor del Logo con ancho forzado
+        st.markdown('<div class="logo-container">', unsafe_allow_html=True)
+        # Usar HTML para el logo con ancho forzado para coincidir
+        st.markdown(
+            """
+            <img src="https://static.wixstatic.com/media/01f016_369527f466b142f389973b318c47b19d~mv2.webp" 
+                 width="100%" 
+                 style="display: block; max-width: 450px; margin: 0 auto;"
+                 alt="Eternit Logo">
+            """, 
+            unsafe_allow_html=True
+        )
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        # Título centrado y más limpio
         st.markdown(
             """
             <h2 style='text-align: center; color: #1A3A5A; font-family: sans-serif; margin-bottom: 30px; font-weight: 700;'>
-                Simulador de Cargue
+                Simulador de Cargue REF
             </h2>
             """, 
             unsafe_allow_html=True
@@ -86,6 +113,9 @@ if not st.session_state.autenticado:
                     st.rerun()
                 else:
                     st.error("Acceso denegado: Credenciales incorrectas")
+        
+        # Cerrar el div con ancho fijo
+        st.markdown('</div>', unsafe_allow_html=True)
 
 else:
     # --- INTERFAZ PRINCIPAL (DESPUÉS DEL LOGIN) ---
