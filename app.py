@@ -29,7 +29,6 @@ st.set_page_config(page_title="Simulador de Cargue", layout="wide")
 if "autenticado" not in st.session_state:
     st.session_state.autenticado = False
 
-
 # -------- LOGIN --------
 if not st.session_state.autenticado:
 
@@ -39,21 +38,11 @@ if not st.session_state.autenticado:
 
         st.markdown("<div style='text-align:center;'>", unsafe_allow_html=True)
 
-        st.image("ETERNIT LOGOS.webp", width=180)
+        st.image("ETERNIT LOGOS.webp", width=170)
 
         st.markdown(
-        """
-        <h3 style="
-        text-align:center;
-        margin-top:10px;
-        color:#E30613;
-        font-weight:700;
-        font-size:24px;
-        ">
-        Simulador de Cargue
-        </h3>
-        """,
-        unsafe_allow_html=True
+            "<h3 style='text-align:center; margin-top:10px;'>SIMULADOR DE CARGUE</h3>",
+            unsafe_allow_html=True
         )
 
         st.markdown("</div>", unsafe_allow_html=True)
@@ -61,17 +50,17 @@ if not st.session_state.autenticado:
         usuario = st.text_input("Correo electrónico").upper()
         clave = st.text_input("Contraseña", type="password")
 
-        if st.button("Ingresar al Sistema", use_container_width=True):
+        if st.button("Ingresar", use_container_width=True):
             if usuario == USUARIO_CORRECTO and clave == CLAVE_CORRECTA:
                 st.session_state.autenticado = True
                 st.rerun()
             else:
                 st.error("Acceso denegado")
 
-
 # -------- SISTEMA --------
 else:
 
+    # BARRA SUPERIOR CORPORATIVA
     st.markdown(
     """
     <div style="
@@ -90,6 +79,7 @@ else:
     unsafe_allow_html=True
     )
 
+    # ESTILOS CSS
     st.markdown("""
     <style>
         .cabina { background: #1A3A5A; color: white; text-align: center; padding: 15px; font-weight: bold; border-radius: 8px 8px 0 0; margin-bottom:10px; border-bottom: 5px solid #bdc3c7; }
@@ -115,7 +105,7 @@ else:
 
     pedido_items = []
     peso_total_pedido = 0
-
+    
     if raw_data:
 
         lines = raw_data.strip().split('\n')
@@ -126,7 +116,7 @@ else:
 
             if not line_upper:
                 continue
-
+            
             match_ref = re.search(r'#(\d+)', line_upper)
 
             if match_ref:
@@ -184,16 +174,19 @@ else:
 
             completos = item["cant"] // paq_tam
             sobra_total = item["cant"] % paq_tam
-
+            
             for _ in range(completos):
                 mapa_vertical.append({"label": item["tipo"], "cant": paq_tam})
-
+            
             while sobra_total > 0:
 
                 if sobra_total > MAX_SALDO_UNIDADES:
+
                     saldos.append({"label": item["tipo"], "cant": MAX_SALDO_UNIDADES})
                     sobra_total -= MAX_SALDO_UNIDADES
+
                 else:
+
                     saldos.append({"label": item["tipo"], "cant": sobra_total})
                     sobra_total = 0
 
