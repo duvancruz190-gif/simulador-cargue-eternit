@@ -18,7 +18,7 @@ PRODUCTOS_BASE = {
     "10": {"peso": 29.54, "paquete": 100, "largo_ft": 10},
 }
 
-# Límites de peso actualizados según tu tabla
+# Límites según tu tabla de referencia
 VEHICULOS = [
     {"tipo": "TURBO", "capacidad_max": 5000, "largo_planchon_ft": 16},
     {"tipo": "SENCILLO", "capacidad_max": 10000, "largo_planchon_ft": 20},
@@ -30,7 +30,7 @@ VEHICULOS = [
 if "autenticado" not in st.session_state:
     st.session_state.autenticado = False
 
-# --- LOGIN ---
+# --- LOGIN (SIN CAMBIOS) ---
 if not st.session_state.autenticado:
     col1, col2, col3 = st.columns([1,1.4,1])
     with col2:
@@ -44,14 +44,15 @@ if not st.session_state.autenticado:
                     st.rerun()
                 else: st.error("Acceso denegado")
 else:
-    # --- INTERFAZ DE CARGUE ---
-    st.markdown('<div style="background:#E30613; padding:12px; border-radius:8px; text-align:center; color:white; font-weight:bold; font-size:22px; margin-bottom:20px;">🚛 SIMULADOR DE CARGUE - EQUILIBRIO DE PESOS</div>', unsafe_allow_html=True)
+    # --- INTERFAZ PRINCIPAL ---
+    st.markdown('<div style="background:#E30613; padding:12px; border-radius:8px; text-align:center; color:white; font-weight:bold; font-size:22px; margin-bottom:20px;">🚛 SIMULADOR DE CARGUE - ETERNIT</div>', unsafe_allow_html=True)
 
     st.markdown("""
     <style>
     .cabina { background:#1A3A5A; color:white; text-align:center; padding:15px; font-weight:bold; border-radius:8px; margin-bottom:10px; }
     .paquete-v { background:#1b5e20; color:white; text-align:center; padding:10px; margin:2px; border-radius:4px; font-weight:bold; border:1px solid #0d3b11; }
     .saldo-box { background:#b7950b; color:white; text-align:center; padding:10px; margin:2px; border-radius:4px; font-weight:bold; border:1px solid #7d6608; }
+    .paquete-h { background:#1b4f72; color:white; text-align:center; padding:15px; margin:10px auto; border-radius:6px; font-weight:bold; border:2px dashed #ecf0f1; width:80%; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -79,70 +80,60 @@ else:
                         peso_total_pedido += cant * info["peso"]
 
     if pedido_items:
-        # Selección de vehículo y Alarmas de Peso
+        # Selección de vehículo y MÉTRICAS (Restauradas)
         vh = next((v for v in VEHICULOS if v["capacidad_max"] >= peso_total_pedido), VEHICULOS[-1])
         
+        # Alarma de Peso
         if peso_total_pedido > 34000:
-            st.error(f"❌ ALERTA: Peso excedido ({peso_total_pedido:,.0f} kg). Máximo permitido 34,000 kg.")
+            st.error(f"❌ EL PEDIDO EXCEDE LA CAPACIDAD MÁXIMA DEL VEHÍCULO POR {peso_total_pedido - 34000:,.2f} KG")
         
-        st.subheader(f"Vehículo: {vh['tipo']} | Largo: {vh['largo_planchon_ft']} ft")
+        c1, c2, c3 = st.columns(3)
+        c1.metric("Peso Total", f"{peso_total_pedido:,.2f} kg")
+        c2.metric("Vehículo Sugerido", vh['tipo'])
+        c3.metric("Largo Planchón", f"{vh['largo_planchon_ft']} ft")
 
-        # --- DISTRIBUCIÓN SIMÉTRICA ---
+        # --- LÓGICA DE CARGUE POR PASOS ---
         inventario = []
-        # Ordenamos de mayor a menor para que la base sea estable
         for item in sorted(pedido_items, key=lambda x: x['ref_num'], reverse=True):
             paq_max = PRODUCTOS_BASE[str(item['ref_num'])]['paquete']
             for _ in range(item["cant"] // paq_max):
-                inventario.append({"label": item["tipo"], "cant": paq_max, "largo": item["largo"], "es_paq": True})
+                inventario.append({"label": item["tipo"], "cant": paq_max, "largo": item["largo"], "es_paq": True, "ref": item["ref_num"]})
             sobra = item["cant"] % paq_max
             if sobra > 0:
-                # Si el saldo es grande, lo partimos para equilibrar peso a los lados
-                if sobra > 40:
-                    inventario.append({"label": item["tipo"], "cant": sobra//2, "largo": item["largo"], "es_paq": False})
-                    inventario.append({"label": item["tipo"], "cant": sobra - (sobra//2), "largo": item["largo"], "es_paq": False})
-                else:
-                    inventario.append({"label": item["tipo"], "cant": sobra, "largo": item["largo"], "es_paq": False})
+                inventario.append({"label": item["tipo"], "cant": sobra, "largo": item["largo"], "es_paq": False, "ref": item["ref_num"]})
 
         col_izq, col_der = [], []
         largo_izq, largo_der = 0, 0
         limite = vh['largo_planchon_ft']
-        fueron_al_planchon = []
+        atrasado = None
+        no_cabe_nada_mas = False
 
-        # Llenado por parejas primero para forzar equilibrio de peso
-        i = 0
-        while i < len(inventario):
-            p1 = inventario[i]
-            # Si hay un par igual, los mandamos uno a cada lado
-            if i + 1 < len(inventario) and inventario[i+1]['label'] == p1['label']:
-                p2 = inventario[i+1]
-                if largo_izq + p1['largo'] <= limite and largo_der + p2['largo'] <= limite:
-                    col_izq.append(p1); largo_izq += p1['largo']
-                    col_der.append(p2); largo_der += p2['largo']
-                i += 2
+        # Asignación por columnas para aprovechar espacios
+        for p in inventario:
+            if largo_izq <= largo_der:
+                if largo_izq + p['largo'] <= limite:
+                    col_izq.append(p); largo_izq += p['largo']
+                else: no_cabe_nada_mas = True
             else:
-                # Si está solo, lo mandamos al lado con más espacio
-                if largo_izq <= largo_der:
-                    if largo_izq + p1['largo'] <= limite:
-                        col_izq.append(p1); largo_izq += p1['largo']
-                    else: fueron_al_planchon.append(p1)
-                else:
-                    if largo_der + p1['largo'] <= limite:
-                        col_der.append(p1); largo_der += p1['largo']
-                    else: fueron_al_planchon.append(p1)
-                i += 1
+                if largo_der + p['largo'] <= limite:
+                    col_der.append(p); largo_der += p['largo']
+                else: no_cabe_nada_mas = True
 
-        # DIBUJO
-        st.markdown('<div class="cabina">CABINA DEL VEHÍCULO</div>', unsafe_allow_html=True)
-        for row_idx in range(max(len(col_izq), len(col_der))):
+        # --- DIBUJO ---
+        st.divider()
+        st.markdown('<div class="cabina">FRENTE DEL VEHÍCULO (CABINA)</div>', unsafe_allow_html=True)
+        
+        for i in range(max(len(col_izq), len(col_der))):
             c = st.columns([1, 2, 2, 1])
             with c[1]:
-                if row_idx < len(col_izq):
-                    b = col_izq[row_idx]
-                    st.markdown(f'<div class="{"paquete-v" if b["es_paq"] else "saldo-box"}">{b["label"]}<br>({b["cant"]} UND)</div>', unsafe_allow_html=True)
+                if i < len(col_izq):
+                    b = col_izq[i]
+                    st.markdown(f'<div class="{"paquete-v" if b["es_paq"] else "saldo-box"}">{b["label"]} ({b["cant"]} UND)</div>', unsafe_allow_html=True)
             with c[2]:
-                if row_idx < len(col_der):
-                    b = col_der[row_idx]
-                    st.markdown(f'<div class="{"paquete-v" if b["es_paq"] else "saldo-box"}">{b["label"]}<br>({b["cant"]} UND)</div>', unsafe_allow_html=True)
+                if i < len(col_der):
+                    b = col_der[i]
+                    st.markdown(f'<div class="{"paquete-v" if b["es_paq"] else "saldo-box"}">{b["label"]} ({b["cant"]} UND)</div>', unsafe_allow_html=True)
 
-        if fueron_al_planchon or (largo_izq > limite or largo_der > limite):
-            st.error("⚠️ ALARMA: NO CABE TODO EL PEDIDO EN EL PLANCHÓN.")
+        # Alarma de espacio
+        if no_cabe_nada_mas:
+            st.error("⚠️ NO CABE TODO EL PEDIDO POR DIMENSIONES FÍSICAS DEL PLANCHÓN.")
