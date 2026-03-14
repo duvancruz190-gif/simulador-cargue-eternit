@@ -1,105 +1,332 @@
 import streamlit as st
+import pandas as pd
 import re
-import plotly.graph_objects as go
 
-st.set_page_config(page_title="Simulador de Cargue 2D - Camión", page_icon="🚛", layout="wide")
+# -----------------------------
+# CONFIGURACIÓN GENERAL
+# -----------------------------
 
-# Productos
+st.set_page_config(
+    page_title="Simulador de Cargue",
+    page_icon="🚛",
+    layout="wide"
+)
+
+USUARIO_CORRECTO = "DUVANCRUZ190@GMAIL.COM"
+CLAVE_CORRECTA = "Du854872*"
+
+# -----------------------------
+# BASE PRODUCTOS
+# -----------------------------
+
 PRODUCTOS_BASE = {
-    "5": {"peso": 14.77, "paquete": 130},
-    "6": {"peso": 17.72, "paquete": 130},
-    "8": {"peso": 23.63, "paquete": 130},
-    "10": {"peso": 29.54, "paquete": 100},
+    "4": {"peso": 11.82, "paquete": 130, "largo_ft": 4},
+    "5": {"peso": 14.77, "paquete": 130, "largo_ft": 5},
+    "6": {"peso": 17.72, "paquete": 130, "largo_ft": 6},
+    "8": {"peso": 23.63, "paquete": 130, "largo_ft": 8},
+    "10": {"peso": 29.54, "paquete": 100, "largo_ft": 10},
 }
 
-# Vehículo
-VEHICULO = {"tipo":"SENCILLO", "capacidad":10000, "largo":20, "ancho":5, "cabina":4}
+# -----------------------------
+# VEHÍCULOS
+# -----------------------------
 
-# Sidebar
-with st.sidebar:
-    st.header("Pedido")
-    raw = st.text_area("Pega el pedido aquí", height=300, placeholder="Ejemplo:\nTEJA FLEXIFORTE #5 500")
+VEHICULOS = [
+    {"tipo": "TURBO", "capacidad_max": 5000, "largo_planchon_ft": 16},
+    {"tipo": "SENCILLO", "capacidad_max": 10000, "largo_planchon_ft": 20},
+    {"tipo": "DOBLE TROQUE", "capacidad_max": 18000, "largo_planchon_ft": 24},
+    {"tipo": "CUATRO MANOS", "capacidad_max": 22000, "largo_planchon_ft": 28},
+    {"tipo": "MULA", "capacidad_max": 34000, "largo_planchon_ft": 40},
+]
 
-# Procesar pedido flexible
-pedido_items = []
-if raw:
-    lines = raw.strip().split("\n")
-    for line in lines:
-        line_upper = line.upper().strip()
-        # Buscar referencia #
-        match_ref = re.search(r"#(\d+)", line_upper)
-        if match_ref:
-            ref = match_ref.group(1)
-            # Buscar cantidad al final de la línea
-            nums = re.findall(r"(\d+)\s*$", line_upper)
-            if nums:
-                cant = int(nums[0])
-                pedido_items.append({"ref":ref, "cantidad":cant})
+# -----------------------------
+# ESTADO LOGIN
+# -----------------------------
 
-# Dibujar camión
-if pedido_items:
-    fig = go.Figure()
-    # Cabina azul
-    fig.add_shape(type="rect", x0=0, y0=0, x1=VEHICULO["cabina"], y1=VEHICULO["ancho"],
-                  fillcolor="blue", line=dict(color="black", width=2))
-    # Planchón gris
-    fig.add_shape(type="rect", x0=VEHICULO["cabina"], y0=0, x1=VEHICULO["largo"], y1=VEHICULO["ancho"],
-                  fillcolor="lightgray", line=dict(color="black", width=2))
+if "autenticado" not in st.session_state:
+    st.session_state.autenticado = False
 
-    # Dibujar paquetes y saldos
-    fila = 0
-    unit_x = 2
-    unit_y = 1
-    max_col = int((VEHICULO["largo"]-VEHICULO["cabina"])/unit_x)
-    max_row = int(VEHICULO["ancho"]/unit_y)
+# ==========================================================
+# LOGIN
+# ==========================================================
 
-    paquetes = []
-    saldos = []
-    for item in pedido_items:
-        paq_size = PRODUCTOS_BASE[item["ref"]]["paquete"]
-        completos = item["cantidad"] // paq_size
-        sobrante = item["cantidad"] % paq_size
-        for _ in range(completos):
-            paquetes.append(item)
-        if sobrante>0:
-            saldos.append({"ref":item["ref"], "cantidad":sobrante})
+if not st.session_state.autenticado:
 
-    for i in range(max_row):
-        if i < len(paquetes):
-            # Paquete central
-            p = paquetes[i]
-            x0 = VEHICULO["cabina"] + unit_x
-            y0 = i*unit_y
-            x1 = x0 + unit_x - 0.1
-            y1 = y0 + unit_y - 0.1
-            fig.add_shape(type="rect", x0=x0, y0=y0, x1=x1, y1=y1,
-                          fillcolor="red", line=dict(color="black"))
-            fig.add_annotation(x=x0+unit_x/2, y=y0+0.5, text=f"TEJA#{p['ref']}",
-                               showarrow=False, font=dict(size=10))
+    st.markdown("""
+    <style>
 
-            # Saldo izquierda
-            if i < len(saldos):
-                s = saldos[i]
-                fig.add_shape(type="rect", x0=VEHICULO["cabina"], y0=i*unit_y,
-                              x1=VEHICULO["cabina"]+unit_x, y1=(i+1)*unit_y,
-                              fillcolor="yellow", line=dict(color="black"))
-                fig.add_annotation(x=VEHICULO["cabina"]+unit_x/2, y=y0+0.5,
-                                   text=f"SALDO #{s['ref']} DE {s['cantidad']}", showarrow=False, font=dict(size=8))
-            # Saldo derecha
-            if i < len(saldos):
-                s = saldos[i]
-                fig.add_shape(type="rect", x0=VEHICULO["cabina"]+2*unit_x, y0=i*unit_y,
-                              x1=VEHICULO["cabina"]+3*unit_x, y1=(i+1)*unit_y,
-                              fillcolor="yellow", line=dict(color="black"))
-                fig.add_annotation(x=VEHICULO["cabina"]+2.5*unit_x, y=y0+0.5,
-                                   text=f"SALDO #{s['ref']} DE {s['cantidad']}", showarrow=False, font=dict(size=8))
+    [data-testid="stHeaderActionElements"] {display:none;}
 
-    fig.update_layout(title="Plano superior camión con tejas",
-                      xaxis=dict(range=[0,VEHICULO["largo"]+1]), 
-                      yaxis=dict(range=[0,VEHICULO["ancho"]+1]),
-                      height=400, showlegend=False)
+    div.stButton > button {
+        background-color:#E30613;
+        color:white;
+        border:none;
+        font-weight:bold;
+        padding:12px;
+        font-size:17px;
+        border-radius:8px;
+    }
 
-    st.plotly_chart(fig, use_container_width=True)
+    div.stButton > button:hover{
+        background-color:#b3050f;
+    }
+
+    </style>
+    """, unsafe_allow_html=True)
+
+    col1, col2, col3 = st.columns([1,1.4,1])
+
+    with col2:
+
+        st.image("logo-eternit-400x150-1.png", use_container_width=True)
+
+        st.markdown(
+        """
+        <h1 style='text-align:center;
+        color:#1A3A5A;
+        font-weight:800;
+        font-size:40px;
+        margin-top:10px'>
+        Simulador de Cargue
+        </h1>
+        """,
+        unsafe_allow_html=True
+        )
+
+        with st.container(border=True):
+
+            usuario = st.text_input("Correo electrónico").upper()
+            clave = st.text_input("Contraseña", type="password")
+
+            if st.button("Ingresar al Sistema", use_container_width=True):
+
+                if usuario == USUARIO_CORRECTO and clave == CLAVE_CORRECTA:
+                    st.session_state.autenticado = True
+                    st.rerun()
+
+                else:
+                    st.error("Credenciales incorrectas")
+
+# ==========================================================
+# SISTEMA
+# ==========================================================
 
 else:
-    st.info("Pega un pedido para generar la simulación.")
+
+    # HEADER
+    st.markdown("""
+    <div style="
+    background:#E30613;
+    padding:12px;
+    border-radius:8px;
+    text-align:center;
+    color:white;
+    font-weight:bold;
+    font-size:22px;
+    margin-bottom:20px;
+    ">
+    🚛 SIMULADOR DE CARGUE - LOGÍSTICA
+    </div>
+    """, unsafe_allow_html=True)
+
+    # ESTILOS
+
+    st.markdown("""
+    <style>
+
+    .cabina {
+    background:#1A3A5A;
+    color:white;
+    text-align:center;
+    padding:15px;
+    font-weight:bold;
+    border-radius:8px 8px 0 0;
+    border-bottom:5px solid #bdc3c7;
+    }
+
+    .paquete-v{
+    background:#27ae60;
+    color:white;
+    text-align:center;
+    padding:12px;
+    margin:4px;
+    border-radius:5px;
+    font-weight:bold;
+    border:1px solid #1e8449;
+    }
+
+    .paquete-h{
+    background:#2980b9;
+    color:white;
+    text-align:center;
+    padding:15px;
+    margin:10px auto;
+    border-radius:6px;
+    font-weight:bold;
+    border:2px dashed #ecf0f1;
+    width:80%;
+    }
+
+    .saldo-box{
+    background:#f1c40f;
+    color:#2c3e50;
+    text-align:center;
+    padding:8px;
+    margin:4px;
+    border-radius:5px;
+    font-size:11px;
+    font-weight:800;
+    border:1px solid #d4ac0d;
+    }
+
+    </style>
+    """, unsafe_allow_html=True)
+
+# ==========================================================
+# SIDEBAR
+# ==========================================================
+
+    with st.sidebar:
+
+        st.header("📋 Pedido")
+
+        raw_data = st.text_area(
+            "Pegue el pedido aquí",
+            height=300,
+            placeholder="Ejemplo:\nTEJA FLEXIFORTE #5 900\nTEJA PERFIL #4 150"
+        )
+
+        if st.button("Limpiar"):
+            st.rerun()
+
+# ==========================================================
+# PROCESAMIENTO PEDIDO
+# ==========================================================
+
+    pedido_items = []
+    peso_total_pedido = 0
+
+    if raw_data:
+
+        lines = raw_data.strip().split("\n")
+
+        for line in lines:
+
+            line_upper = line.upper().strip()
+
+            match_ref = re.search(r'#(\d+)', line_upper)
+
+            if match_ref:
+
+                num_ref = match_ref.group(1)
+
+                if num_ref in PRODUCTOS_BASE:
+
+                    numeros = re.findall(r'\d+', line_upper.replace(f"#{num_ref}", ""))
+
+                    if numeros:
+
+                        cant = int(numeros[-1])
+                        info = PRODUCTOS_BASE[num_ref]
+
+                        nombre = f"FLEX. #{num_ref}" if "FLEXIFORTE" in line_upper else f"TEJA #{num_ref}"
+
+                        pedido_items.append({
+                            "tipo": nombre,
+                            "cant": cant,
+                            "peso": cant * info["peso"],
+                            "ref": num_ref
+                        })
+
+                        peso_total_pedido += cant * info["peso"]
+
+# ==========================================================
+# RESULTADOS
+# ==========================================================
+
+    if pedido_items:
+
+        vh = next((v for v in VEHICULOS if v["capacidad_max"] >= peso_total_pedido), VEHICULOS[-1])
+
+        st.subheader(f"🚛 Vehículo sugerido: {vh['tipo']}")
+
+        c1, c2, c3 = st.columns(3)
+
+        c1.metric("Peso Total", f"{peso_total_pedido:,.2f} kg")
+        c2.metric("Capacidad Vehículo", f"{vh['capacidad_max']:,.0f} kg")
+
+        largo_req = max([PRODUCTOS_BASE[i['ref']]['largo_ft'] for i in pedido_items])
+        c3.metric("Largo requerido", f"{largo_req} ft")
+
+        st.divider()
+
+        st.markdown('<div class="cabina">FRENTE DEL VEHÍCULO (CABINA)</div>', unsafe_allow_html=True)
+
+# ==========================================================
+# LÓGICA DISTRIBUCIÓN
+# ==========================================================
+
+        pedido_sorted = sorted(pedido_items,
+                               key=lambda x: PRODUCTOS_BASE[x['ref']]['largo_ft'],
+                               reverse=True)
+
+        mapa_vertical = []
+        saldos = []
+
+        for item in pedido_sorted:
+
+            paq = PRODUCTOS_BASE[item['ref']]['paquete']
+
+            completos = item["cant"] // paq
+            sobra = item["cant"] % paq
+
+            for _ in range(completos):
+                mapa_vertical.append({"label": item["tipo"], "cant": paq})
+
+            while sobra > 0:
+                cant_s = min(sobra, 60)
+                saldos.append({"label": item["tipo"], "cant": cant_s})
+                sobra -= cant_s
+
+        paq_render = list(mapa_vertical)
+
+        atravesado = paq_render.pop() if len(paq_render) % 2 != 0 else None
+
+        rows = [paq_render[i:i+2] for i in range(0, len(paq_render), 2)]
+
+        saldos_render = list(saldos)
+
+        for row in rows:
+
+            cols = st.columns([1,1.5,1.5,1])
+
+            with cols[0]:
+
+                if saldos_render:
+                    s = saldos_render.pop(0)
+                    st.markdown(f'<div class="saldo-box">{s["label"]}<br>{s["cant"]} UND</div>', unsafe_allow_html=True)
+
+            with cols[1]:
+                st.markdown(f'<div class="paquete-v">{row[0]["label"]}<br>({row[0]["cant"]})</div>', unsafe_allow_html=True)
+
+            with cols[2]:
+
+                if len(row) > 1:
+                    st.markdown(f'<div class="paquete-v">{row[1]["label"]}<br>({row[1]["cant"]})</div>', unsafe_allow_html=True)
+
+            with cols[3]:
+
+                if saldos_render:
+                    s = saldos_render.pop(0)
+                    st.markdown(f'<div class="saldo-box">{s["label"]}<br>{s["cant"]} UND</div>', unsafe_allow_html=True)
+
+        if atravesado:
+
+            st.markdown(
+            f'<div class="paquete-h">📦 PAQUETE COMPLETO TRASERO<br>{atravesado["label"]} ({atravesado["cant"]} UND)</div>',
+            unsafe_allow_html=True
+            )
+
+    else:
+
+        st.info("Pegue un pedido en el panel izquierdo para generar la simulación.")
