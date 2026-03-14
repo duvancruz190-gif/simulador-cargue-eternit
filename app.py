@@ -54,6 +54,7 @@ else:
     .paquete-v { background:#1b5e20; color:white; text-align:center; padding:12px; margin:4px; border-radius:5px; font-weight:bold; border:1px solid #0d3b11; }
     .paquete-h { background:#1b4f72; color:white; text-align:center; padding:15px; margin:10px auto; border-radius:6px; font-weight:bold; border:2px dashed #ecf0f1; width:80%; }
     .saldo-box { background:#b7950b; color:white; text-align:center; padding:8px; margin:4px; border-radius:5px; font-size:11px; font-weight:800; border:1px solid #7d6608; }
+    .remonte-box { background:#2874A6; color:white; text-align:center; padding:8px; margin:4px; border-radius:5px; font-size:11px; font-weight:800; border:1px solid #1a5276; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -84,15 +85,16 @@ else:
                         peso_total_pedido += cant * info["peso"]
 
     if pedido_items:
-        # Selección de vehículo por peso
+        # Selección de vehículo
         vh = next((v for v in VEHICULOS if v["capacidad_max"] >= peso_total_pedido), VEHICULOS[-1])
+        limite_ft = vh['largo_planchon_ft']
         
         c1, c2, c3 = st.columns(3)
         c1.metric("Peso Total", f"{peso_total_pedido:,.2f} kg")
         c2.metric("Vehículo Sugerido", vh['tipo'])
         c3.metric("Capacidad Máxima", f"{vh['capacidad_max']:,.0f} kg")
 
-        # --- LÓGICA DE DISTRIBUCIÓN ---
+        # --- PROCESAMIENTO DE CARGA ---
         pedido_sorted = sorted(pedido_items, key=lambda x: x['ref_num'], reverse=True)
         paquetes_verdes = []
         saldos_naranja = []
@@ -109,62 +111,56 @@ else:
                 sobra -= unidades
 
         paq_render = list(paquetes_verdes)
-        atravesado = paq_render.pop() if len(paq_render) % 2 != 0 else None
         rows = [paq_render[i:i+2] for i in range(0, len(paq_render), 2)]
-        
-        # Balanceo de saldos laterales
-        saldos_izq = saldos_naranja[::2]
-        saldos_der = saldos_naranja[1::2]
+        saldos_render = list(saldos_naranja)
 
         st.divider()
         st.markdown('<div class="cabina">FRENTE DEL VEHÍCULO (CABINA)</div>', unsafe_allow_html=True)
 
         largo_centro = 0
-        largo_izq_total = sum(s['largo'] for s in saldos_izq)
-        largo_der_total = sum(s['largo'] for s in saldos_der)
-        limite_ft = vh['largo_planchon_ft']
-
-        # Dibujo del planchón
-        max_iter = max(len(rows), len(saldos_izq), len(saldos_der))
         
-        for i in range(max_iter):
+        # Dibujar filas
+        for row in rows:
+            avance = max([p['largo'] for p in row])
+            largo_centro += avance
             cols = st.columns([1, 1.5, 1.5, 1])
             
-            # Lateral Izquierdo
-            with cols[0]:
-                if i < len(saldos_izq):
-                    s = saldos_izq[i]
+            with cols[0]: # Lateral Izquierdo
+                if saldos_render:
+                    s = saldos_render.pop(0)
                     st.markdown(f'<div class="saldo-box">{s["label"]}<br>{s["cant"]} UND<br>({s["largo"]} ft)</div>', unsafe_allow_html=True)
             
-            # Paquetes Verdes (Centro)
-            if i < len(rows):
-                avance = max([p['largo'] for p in rows[i]])
-                largo_centro += avance
-                with cols[1]: st.markdown(f'<div class="paquete-v">{rows[i][0]["label"]}<br>({rows[i][0]["cant"]})</div>', unsafe_allow_html=True)
-                with cols[2]: st.markdown(f'<div class="paquete-v">{rows[i][1]["label"]}<br>({rows[i][1]["cant"]})</div>', unsafe_allow_html=True)
+            with cols[1]: st.markdown(f'<div class="paquete-v">{row[0]["label"]}<br>({row[0]["cant"]})</div>', unsafe_allow_html=True)
+            with cols[2]: st.markdown(f'<div class="paquete-v">{row[1]["label"]}<br>({row[1]["cant"]})</div>', unsafe_allow_html=True)
             
-            # Lateral Derecho
-            with cols[3]:
-                if i < len(saldos_der):
-                    s = saldos_der[i]
+            with cols[3]: # Lateral Derecho
+                if saldos_render:
+                    s = saldos_render.pop(0)
                     st.markdown(f'<div class="saldo-box">{s["label"]}<br>{s["cant"]} UND<br>({s["largo"]} ft)</div>', unsafe_allow_html=True)
 
-        if atravesado:
-            st.markdown(f'<div class="paquete-h">📦 PAQUETE TRASERO: {atravesado["label"]} ({atravesado["cant"]} UND) - {atravesado["largo"]} ft</div>', unsafe_allow_html=True)
-            largo_centro += atravesado['largo']
+        # Manejo de paquetes atravesados o sobrantes en el centro
+        if len(paq_render) % 2 != 0:
+            # Lógica para cuando queda uno solo al final del centro
+            p_final = paq_render[-1]
+            cols_f = st.columns([1, 3, 1])
+            with cols_f[1]: st.markdown(f'<div class="paquete-h">📦 PAQUETE CENTRAL TRASERO<br>{p_final["label"]} ({p_final["cant"]} UND)</div>', unsafe_allow_html=True)
 
-        # --- MÉTRICAS DE CONTROL (PASOS) ---
+        # SECCIÓN DE REMONTE (MATERIAL QUE VA ARRIBA)
+        if saldos_render:
+            st.markdown("---")
+            st.subheader("📦 MATERIAL EN REMONTE / CARGA SUPERIOR")
+            st.info("Este material se distribuye sobre los laterales o encima de los paquetes base.")
+            cols_rem = st.columns(5)
+            for i, s in enumerate(saldos_render):
+                with cols_rem[i % 5]:
+                    st.markdown(f'<div class="remonte-box">{s["label"]}<br>{s["cant"]} UND</div>', unsafe_allow_html=True)
+
+        # MÉTRICAS DE VALIDACIÓN
         st.markdown("---")
-        st.subheader("📊 Control de Pasos (ft) por Carril")
-        m1, m2, m3 = st.columns(3)
+        col_m1, col_m2 = st.columns(2)
+        col_m1.metric("Espacio Lineal Ocupado (Piso)", f"{largo_centro} ft", f"{limite_ft - largo_centro} ft libres")
         
-        # Color de métrica según ocupación
-        m1.metric("Carril Izquierdo", f"{largo_izq_total} ft", f"{limite_ft - largo_izq_total} ft libres")
-        m2.metric("Carril Central", f"{largo_centro} ft", f"{limite_ft - largo_centro} ft libres")
-        m3.metric("Carril Derecho", f"{largo_der_total} ft", f"{limite_ft - largo_der_total} ft libres")
-
-        # Alertas finales
-        if max(largo_izq_total, largo_centro, largo_der_total) > limite_ft:
-            st.error(f"⚠️ SOBRE-DIMENSIÓN: Un carril excede los {limite_ft} ft del vehículo.")
+        if largo_centro <= limite_ft:
+            st.success(f"✅ CARGUE VÁLIDO: El pedido cabe en los {limite_ft} ft del vehículo.")
         else:
-            st.success(f"✅ CARGUE DENTRO DE LÍMITES ({limite_ft} ft máx).")
+            st.error(f"⚠️ ALERTA: El largo total ({largo_centro} ft) supera el planchón del vehículo.")
