@@ -73,7 +73,9 @@ if not st.session_state.autenticado:
     col1, col2, col3 = st.columns([1,1.4,1])
 
     with col2:
+        # Nota: Asegúrate de tener la imagen del logo en la misma carpeta
         st.image("logo-eternit-400x150-1.png", use_container_width=True)
+
         st.markdown(
         """
         <h1 style='text-align:center;
@@ -103,7 +105,7 @@ if not st.session_state.autenticado:
 # ==========================================================
 
 else:
-    # HEADER
+    # HEADER (CORREGIDO SIN LOS SIGNOS ??)
     st.markdown("""
     <div style="
     background:#E30613;
@@ -115,11 +117,11 @@ else:
     font-size:22px;
     margin-bottom:20px;
     ">
-    ?? SIMULADOR DE CARGUE - LOGÍSTICA
+    🚛 SIMULADOR DE CARGUE - LOGÍSTICA
     </div>
     """, unsafe_allow_html=True)
 
-    # ESTILOS ACTUALIZADOS (COLORES OSCUROS)
+    # ESTILOS CON COLORES OSCUROS
     st.markdown("""
     <style>
     .cabina {
@@ -133,7 +135,7 @@ else:
     }
 
     .paquete-v{
-    background:#1b5e20; /* VERDE MÁS OSCURO */
+    background:#1b5e20; /* VERDE OSCURO */
     color:white;
     text-align:center;
     padding:12px;
@@ -144,7 +146,7 @@ else:
     }
 
     .paquete-h{
-    background:#1b4f72; /* AZUL MÁS OSCURO */
+    background:#1b4f72; /* AZUL OSCURO */
     color:white;
     text-align:center;
     padding:15px;
@@ -218,11 +220,13 @@ else:
     if pedido_items:
         vh = next((v for v in VEHICULOS if v["capacidad_max"] >= peso_total_pedido), VEHICULOS[-1])
         st.subheader(f"🚛 Vehículo sugerido: {vh['tipo']}")
+        
         c1, c2, c3 = st.columns(3)
         c1.metric("Peso Total", f"{peso_total_pedido:,.2f} kg")
         c2.metric("Capacidad Vehículo", f"{vh['capacidad_max']:,.0f} kg")
         largo_req = max([PRODUCTOS_BASE[i['ref']]['largo_ft'] for i in pedido_items])
         c3.metric("Largo requerido", f"{largo_req} ft")
+        
         st.divider()
         st.markdown('<div class="cabina">FRENTE DEL VEHÍCULO (CABINA)</div>', unsafe_allow_html=True)
 
