@@ -52,6 +52,28 @@ if "autenticado" not in st.session_state:
 
 if not st.session_state.autenticado:
 
+    st.markdown("""
+    <style>
+
+    [data-testid="stHeaderActionElements"] {display:none;}
+
+    div.stButton > button {
+        background-color:#E30613;
+        color:white;
+        border:none;
+        font-weight:bold;
+        padding:12px;
+        font-size:17px;
+        border-radius:8px;
+    }
+
+    div.stButton > button:hover{
+        background-color:#b3050f;
+    }
+
+    </style>
+    """, unsafe_allow_html=True)
+
     col1, col2, col3 = st.columns([1,1.4,1])
 
     with col2:
@@ -61,9 +83,9 @@ if not st.session_state.autenticado:
         st.markdown(
         """
         <h1 style='text-align:center;
-        color:#E30613;
+        color:#1A3A5A;
         font-weight:800;
-        font-size:26px;
+        font-size:40px;
         margin-top:10px'>
         Simulador de Cargue
         </h1>
@@ -91,6 +113,7 @@ if not st.session_state.autenticado:
 
 else:
 
+    # HEADER
     st.markdown("""
     <div style="
     background:#E30613;
@@ -104,6 +127,59 @@ else:
     ">
     🚛 SIMULADOR DE CARGUE - LOGÍSTICA
     </div>
+    """, unsafe_allow_html=True)
+
+    # ESTILOS
+
+    st.markdown("""
+    <style>
+
+    .cabina {
+    background:#1A3A5A;
+    color:white;
+    text-align:center;
+    padding:15px;
+    font-weight:bold;
+    border-radius:8px 8px 0 0;
+    border-bottom:5px solid #bdc3c7;
+    }
+
+    .paquete-v{
+    background:#27ae60;
+    color:white;
+    text-align:center;
+    padding:12px;
+    margin:4px;
+    border-radius:5px;
+    font-weight:bold;
+    border:1px solid #1e8449;
+    }
+
+    .paquete-h{
+    background:#2980b9;
+    color:white;
+    text-align:center;
+    padding:15px;
+    margin:10px auto;
+    border-radius:6px;
+    font-weight:bold;
+    border:2px dashed #ecf0f1;
+    width:80%;
+    }
+
+    .saldo-box{
+    background:#f1c40f;
+    color:#2c3e50;
+    text-align:center;
+    padding:8px;
+    margin:4px;
+    border-radius:5px;
+    font-size:11px;
+    font-weight:800;
+    border:1px solid #d4ac0d;
+    }
+
+    </style>
     """, unsafe_allow_html=True)
 
 # ==========================================================
@@ -153,7 +229,7 @@ else:
                         cant = int(numeros[-1])
                         info = PRODUCTOS_BASE[num_ref]
 
-                        nombre = f"FLEX. #{num_ref}"
+                        nombre = f"FLEX. #{num_ref}" if "FLEXIFORTE" in line_upper else f"TEJA #{num_ref}"
 
                         pedido_items.append({
                             "tipo": nombre,
@@ -179,104 +255,77 @@ else:
         c1.metric("Peso Total", f"{peso_total_pedido:,.2f} kg")
         c2.metric("Capacidad Vehículo", f"{vh['capacidad_max']:,.0f} kg")
 
-        largo_planchon = vh["largo_planchon_ft"]
-        c3.metric("Largo Planchón", f"{largo_planchon} ft")
+        largo_req = max([PRODUCTOS_BASE[i['ref']]['largo_ft'] for i in pedido_items])
+        c3.metric("Largo requerido", f"{largo_req} ft")
 
         st.divider()
 
-        st.markdown('<div style="background:#1A3A5A;color:white;text-align:center;padding:10px;border-radius:8px">FRENTE DEL VEHÍCULO</div>', unsafe_allow_html=True)
+        st.markdown('<div class="cabina">FRENTE DEL VEHÍCULO (CABINA)</div>', unsafe_allow_html=True)
 
 # ==========================================================
-# LÓGICA REAL DE CARGUE
+# LÓGICA DISTRIBUCIÓN
 # ==========================================================
+
+        pedido_sorted = sorted(pedido_items,
+                               key=lambda x: PRODUCTOS_BASE[x['ref']]['largo_ft'],
+                               reverse=True)
 
         mapa_vertical = []
         saldos = []
 
-        pasos_usados = 0
+        for item in pedido_sorted:
 
-        for item in pedido_items:
+            paq = PRODUCTOS_BASE[item['ref']]['paquete']
 
-            ref = item["ref"]
-            info = PRODUCTOS_BASE[ref]
+            completos = item["cant"] // paq
+            sobra = item["cant"] % paq
 
-            largo = info["largo_ft"]
-            paquete = info["paquete"]
+            for _ in range(completos):
+                mapa_vertical.append({"label": item["tipo"], "cant": paq})
 
-            paquetes = item["cant"] // paquete
-            sobrante = item["cant"] % paquete
+            while sobra > 0:
+                cant_s = min(sobra, 60)
+                saldos.append({"label": item["tipo"], "cant": cant_s})
+                sobra -= cant_s
 
-            for _ in range(paquetes):
+        paq_render = list(mapa_vertical)
 
-                if pasos_usados + largo <= largo_planchon:
+        atravesado = paq_render.pop() if len(paq_render) % 2 != 0 else None
 
-                    mapa_vertical.append({"label": item["tipo"], "cant": paquete})
-                    pasos_usados += largo
+        rows = [paq_render[i:i+2] for i in range(0, len(paq_render), 2)]
 
-            while sobrante > 0:
+        saldos_render = list(saldos)
 
-                cant = min(sobrante,60)
+        for row in rows:
 
-                saldos.append({
-                    "label": item["tipo"],
-                    "cant": cant
-                })
+            cols = st.columns([1,1.5,1.5,1])
 
-                sobrante -= cant
+            with cols[0]:
 
-# ==========================================================
-# PAQUETE ATRAVESADO
-# ==========================================================
+                if saldos_render:
+                    s = saldos_render.pop(0)
+                    st.markdown(f'<div class="saldo-box">{s["label"]}<br>{s["cant"]} UND</div>', unsafe_allow_html=True)
 
-        pasos_restantes = largo_planchon - pasos_usados
-        atravesado = None
+            with cols[1]:
+                st.markdown(f'<div class="paquete-v">{row[0]["label"]}<br>({row[0]["cant"]})</div>', unsafe_allow_html=True)
 
-        if pasos_restantes == 4 and mapa_vertical:
-            atravesado = mapa_vertical.pop()
+            with cols[2]:
 
-# ==========================================================
-# RENDER
-# ==========================================================
+                if len(row) > 1:
+                    st.markdown(f'<div class="paquete-v">{row[1]["label"]}<br>({row[1]["cant"]})</div>', unsafe_allow_html=True)
 
-        filas = [mapa_vertical[i:i+2] for i in range(0,len(mapa_vertical),2)]
+            with cols[3]:
 
-        for fila in filas:
-
-            col1,col2,col3,col4 = st.columns([1,2,2,1])
-
-            with col2:
-                st.markdown(f"<div style='background:#27ae60;color:white;padding:10px;text-align:center;border-radius:6px'>{fila[0]['label']}<br>{fila[0]['cant']}</div>", unsafe_allow_html=True)
-
-            if len(fila)>1:
-                with col3:
-                    st.markdown(f"<div style='background:#27ae60;color:white;padding:10px;text-align:center;border-radius:6px'>{fila[1]['label']}<br>{fila[1]['cant']}</div>", unsafe_allow_html=True)
-
-# ----------------------------------------------------------
+                if saldos_render:
+                    s = saldos_render.pop(0)
+                    st.markdown(f'<div class="saldo-box">{s["label"]}<br>{s["cant"]} UND</div>', unsafe_allow_html=True)
 
         if atravesado:
 
             st.markdown(
-            f"<div style='background:#2980b9;color:white;text-align:center;padding:12px;border-radius:6px;margin-top:10px'>PAQUETE ATRAVESADO<br>{atravesado['label']} ({atravesado['cant']})</div>",
+            f'<div class="paquete-h">📦 PAQUETE COMPLETO TRASERO<br>{atravesado["label"]} ({atravesado["cant"]} UND)</div>',
             unsafe_allow_html=True
             )
-
-# ----------------------------------------------------------
-
-        if saldos:
-
-            st.divider()
-            st.subheader("Saldos sobre paquetes")
-
-            cols = st.columns(6)
-
-            for i,s in enumerate(saldos):
-
-                with cols[i%6]:
-
-                    st.markdown(
-                    f"<div style='background:#f1c40f;color:black;padding:6px;text-align:center;border-radius:5px'>{s['label']}<br>{s['cant']}</div>",
-                    unsafe_allow_html=True
-                    )
 
     else:
 
