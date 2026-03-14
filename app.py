@@ -263,70 +263,64 @@ else:
         st.markdown('<div class="cabina">FRENTE DEL VEHÍCULO (CABINA)</div>', unsafe_allow_html=True)
 
 # ==========================================================
-# LÓGICA DISTRIBUCIÓN
+# LÓGICA DISTRIBUCIÓN (MISMA ESTRUCTURA + PASOS VEHÍCULO)
 # ==========================================================
 
-        pedido_sorted = sorted(pedido_items,
-                               key=lambda x: PRODUCTOS_BASE[x['ref']]['largo_ft'],
-                               reverse=True)
+pedido_sorted = sorted(
+    pedido_items,
+    key=lambda x: PRODUCTOS_BASE[x['ref']]['largo_ft'],
+    reverse=True
+)
 
-        mapa_vertical = []
-        saldos = []
+mapa_vertical = []
+saldos = []
 
-        for item in pedido_sorted:
+pasos_usados = 0
+largo_planchon = vh["largo_planchon_ft"]
 
-            paq = PRODUCTOS_BASE[item['ref']]['paquete']
+for item in pedido_sorted:
 
-            completos = item["cant"] // paq
-            sobra = item["cant"] % paq
+    info = PRODUCTOS_BASE[item["ref"]]
+    largo = info["largo_ft"]
+    paquete = info["paquete"]
 
-            for _ in range(completos):
-                mapa_vertical.append({"label": item["tipo"], "cant": paq})
+    completos = item["cant"] // paquete
+    sobra = item["cant"] % paquete
 
-            while sobra > 0:
-                cant_s = min(sobra, 60)
-                saldos.append({"label": item["tipo"], "cant": cant_s})
-                sobra -= cant_s
+    for _ in range(completos):
 
-        paq_render = list(mapa_vertical)
+        if pasos_usados + largo <= largo_planchon:
 
-        atravesado = paq_render.pop() if len(paq_render) % 2 != 0 else None
+            mapa_vertical.append({
+                "label": item["tipo"],
+                "cant": paquete
+            })
 
-        rows = [paq_render[i:i+2] for i in range(0, len(paq_render), 2)]
+            pasos_usados += largo
 
-        saldos_render = list(saldos)
+        else:
+            sobra += paquete
 
-        for row in rows:
+    while sobra > 0:
 
-            cols = st.columns([1,1.5,1.5,1])
+        cant_s = min(sobra,60)
 
-            with cols[0]:
+        saldos.append({
+            "label": item["tipo"],
+            "cant": cant_s
+        })
 
-                if saldos_render:
-                    s = saldos_render.pop(0)
-                    st.markdown(f'<div class="saldo-box">{s["label"]}<br>{s["cant"]} UND</div>', unsafe_allow_html=True)
+        sobra -= cant_s
 
-            with cols[1]:
-                st.markdown(f'<div class="paquete-v">{row[0]["label"]}<br>({row[0]["cant"]})</div>', unsafe_allow_html=True)
 
-            with cols[2]:
+# ==========================================================
+# PAQUETE ATRAVESADO
+# ==========================================================
 
-                if len(row) > 1:
-                    st.markdown(f'<div class="paquete-v">{row[1]["label"]}<br>({row[1]["cant"]})</div>', unsafe_allow_html=True)
+pasos_restantes = largo_planchon - pasos_usados
 
-            with cols[3]:
+atravesado = None
 
-                if saldos_render:
-                    s = saldos_render.pop(0)
-                    st.markdown(f'<div class="saldo-box">{s["label"]}<br>{s["cant"]} UND</div>', unsafe_allow_html=True)
+if pasos_restantes == 4 and mapa_vertical:
 
-        if atravesado:
-
-            st.markdown(
-            f'<div class="paquete-h">📦 PAQUETE COMPLETO TRASERO<br>{atravesado["label"]} ({atravesado["cant"]} UND)</div>',
-            unsafe_allow_html=True
-            )
-
-    else:
-
-        st.info("Pegue un pedido en el panel izquierdo para generar la simulación.")
+    atravesado = mapa_vertical.pop()
