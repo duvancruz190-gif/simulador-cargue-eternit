@@ -54,6 +54,7 @@ else:
     .paquete-v { background:#1b5e20; color:white; text-align:center; padding:12px; margin:4px; border-radius:5px; font-weight:bold; border:1px solid #0d3b11; }
     .paquete-h { background:#1b4f72; color:white; text-align:center; padding:15px; margin:10px auto; border-radius:6px; font-weight:bold; border:2px dashed #ecf0f1; width:80%; }
     .saldo-box { background:#b7950b; color:white; text-align:center; padding:8px; margin:4px; border-radius:5px; font-size:11px; font-weight:800; border:1px solid #7d6608; }
+    .remonte-box { background:#2874A6; color:white; text-align:center; padding:8px; margin:4px; border-radius:5px; font-size:11px; font-weight:800; border:1px solid #1a5276; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -97,7 +98,7 @@ else:
         c2.metric("Vehículo Sugerido", vh['tipo'])
         c3.metric("Capacidad Máxima", f"{vh['capacidad_max']:,.0f} kg")
 
-        # --- LÓGICA DE DISTRIBUCIÓN ---
+        # --- LÓGICA DE DISTRIBUCIÓN MODIFICADA ---
         pedido_sorted = sorted(pedido_items, key=lambda x: x['ref_num'], reverse=True)
         paquetes_verdes = []
         saldos_naranja = []
@@ -109,7 +110,6 @@ else:
             for _ in range(completos):
                 paquetes_verdes.append({"label": item["tipo"], "cant": paq_max, "ref": item["ref_num"], "largo": item["largo_ft"]})
             
-            # Consolidación de saldos (Máximo 60)
             while sobra > 0:
                 unidades = min(sobra, 60)
                 saldos_naranja.append({"label": item["tipo"], "cant": unidades, "ref": item["ref_num"], "largo": item["largo_ft"]})
@@ -125,40 +125,56 @@ else:
 
         largo_ocupado = 0
         limite_ft = vh['largo_planchon_ft']
-        todo_cargado = True
-
+        
+        # Renderizado de filas principales
         for row in rows:
             avance = max([p['largo'] for p in row])
-            if largo_ocupado + avance <= limite_ft:
-                cols = st.columns([1, 1.5, 1.5, 1])
-                with cols[0]:
-                    if saldos_render:
-                        s = saldos_render.pop(0)
-                        st.markdown(f'<div class="saldo-box">{s["label"]}<br>{s["cant"]} UND</div>', unsafe_allow_html=True)
-                with cols[1]: st.markdown(f'<div class="paquete-v">{row[0]["label"]}<br>({row[0]["cant"]})</div>', unsafe_allow_html=True)
-                with cols[2]: st.markdown(f'<div class="paquete-v">{row[1]["label"]}<br>({row[1]["cant"]})</div>', unsafe_allow_html=True)
-                with cols[3]:
-                    if saldos_render:
-                        s = saldos_render.pop(0)
-                        st.markdown(f'<div class="saldo-box">{s["label"]}<br>{s["cant"]} UND</div>', unsafe_allow_html=True)
-                largo_ocupado += avance
-            else: todo_cargado = False
+            cols = st.columns([1, 1.5, 1.5, 1])
+            
+            with cols[0]: # Saldo Izquierda
+                if saldos_render:
+                    s = saldos_render.pop(0)
+                    st.markdown(f'<div class="saldo-box">{s["label"]}<br>{s["cant"]} UND</div>', unsafe_allow_html=True)
+            
+            with cols[1]: st.markdown(f'<div class="paquete-v">{row[0]["label"]}<br>({row[0]["cant"]})</div>', unsafe_allow_html=True)
+            with cols[2]: st.markdown(f'<div class="paquete-v">{row[1]["label"]}<br>({row[1]["cant"]})</div>', unsafe_allow_html=True)
+            
+            with cols[3]: # Saldo Derecha
+                if saldos_render:
+                    s = saldos_render.pop(0)
+                    st.markdown(f'<div class="saldo-box">{s["label"]}<br>{s["cant"]} UND</div>', unsafe_allow_html=True)
+            
+            largo_ocupado += avance
 
         if atravesado:
-            if largo_ocupado + atravesado['largo'] <= limite_ft:
-                cols_f = st.columns([1, 3, 1])
-                with cols_f[0]:
-                    if saldos_render and saldos_render[0]['ref'] <= atravesado['ref']:
-                        s = saldos_render.pop(0)
-                        st.markdown(f'<div class="saldo-box">{s["label"]}<br>{s["cant"]} UND</div>', unsafe_allow_html=True)
-                with cols_f[1]: st.markdown(f'<div class="paquete-h">📦 PAQUETE TRASERO<br>{atravesado["label"]} ({atravesado["cant"]} UND)</div>', unsafe_allow_html=True)
-                with cols_f[2]:
-                    if saldos_render and saldos_render[0]['ref'] <= atravesado['ref']:
-                        s = saldos_render.pop(0)
-                        st.markdown(f'<div class="saldo-box">{s["label"]}<br>{s["cant"]} UND</div>', unsafe_allow_html=True)
-                largo_ocupado += atravesado['largo']
-            else: todo_cargado = False
+            cols_f = st.columns([1, 3, 1])
+            with cols_f[0]:
+                if saldos_render:
+                    s = saldos_render.pop(0)
+                    st.markdown(f'<div class="saldo-box">{s["label"]}<br>{s["cant"]} UND</div>', unsafe_allow_html=True)
+            with cols_f[1]: st.markdown(f'<div class="paquete-h">📦 PAQUETE TRASERO<br>{atravesado["label"]} ({atravesado["cant"]} UND)</div>', unsafe_allow_html=True)
+            with cols_f[2]:
+                if saldos_render:
+                    s = saldos_render.pop(0)
+                    st.markdown(f'<div class="saldo-box">{s["label"]}<br>{s["cant"]} UND</div>', unsafe_allow_html=True)
+            largo_ocupado += atravesado['largo']
 
-        # 2. Alarma de Espacio
-        if not todo_cargado or saldos_render:
-            st.error("⚠️ NO CABE TODO EL PEDIDO EN EL VEHÍCULO POR DIMENSIONES FÍSICAS.")
+        # NUEVA SECCIÓN: REMONTE (Para lo que no cupo en los laterales)
+        if saldos_render:
+            st.markdown("---")
+            st.subheader("📦 MATERIAL EN REMONTE (ARRIBA DEL PLANCHÓN)")
+            st.info("Este material se ubica encima de los paquetes base para optimizar espacio.")
+            cols_remonte = st.columns(5)
+            for i, s in enumerate(saldos_render):
+                with cols_remonte[i % 5]:
+                    st.markdown(f'<div class="remonte-box">{s["label"]}<br>{s["cant"]} UND</div>', unsafe_allow_html=True)
+            # Limpiamos para evitar alerta de error injustificada
+            saldos_restantes_check = False 
+        else:
+            saldos_restantes_check = False
+
+        # 2. Alarma de Espacio Final (Solo si el piso supera el largo)
+        if largo_ocupado > limite_ft:
+            st.error(f"⚠️ ATENCIÓN: El largo de los paquetes en el piso ({largo_ocupado} ft) excede el planchón ({limite_ft} ft).")
+        else:
+            st.success(f"✅ CARGUE COMPLETADO - Largo en piso: {largo_ocupado} / {limite_ft} ft")
