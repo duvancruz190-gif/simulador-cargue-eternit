@@ -1,161 +1,332 @@
 import streamlit as st
-import math
+import pandas as pd
+import re
 
-# ---------------------------
-# LOGIN
-# ---------------------------
+# -----------------------------
+# CONFIGURACIÓN GENERAL
+# -----------------------------
+
+st.set_page_config(
+    page_title="Simulador de Cargue",
+    page_icon="🚛",
+    layout="wide"
+)
 
 USUARIO_CORRECTO = "DUVANCRUZ190@GMAIL.COM"
 CLAVE_CORRECTA = "Du854872*"
 
-if "login" not in st.session_state:
-    st.session_state.login = False
+# -----------------------------
+# BASE PRODUCTOS
+# -----------------------------
 
-if not st.session_state.login:
-
-    st.image("ETERNIT LOGOS.webp", width=200)
-
-    st.markdown(
-        "<h3 style='text-align:center;color:red;'>Simulador de Cargue</h3>",
-        unsafe_allow_html=True
-    )
-
-    usuario = st.text_input("Usuario")
-    clave = st.text_input("Contraseña", type="password")
-
-    if st.button("Ingresar"):
-
-        if usuario.upper() == USUARIO_CORRECTO and clave == CLAVE_CORRECTA:
-            st.session_state.login = True
-            st.rerun()
-        else:
-            st.error("Usuario o contraseña incorrectos")
-
-    st.stop()
-
-
-# ---------------------------
-# PRODUCTOS (TEJAS)
-# ---------------------------
-
-PRODUCTOS = {
-    "TEJA FLEXIFORTE #4": {"largo":4,"peso":11.82,"paquete":130},
-    "TEJA FLEXIFORTE #5": {"largo":5,"peso":14.77,"paquete":130},
-    "TEJA FLEXIFORTE #6": {"largo":6,"peso":17.72,"paquete":130},
-    "TEJA FLEXIFORTE #8": {"largo":8,"peso":23.63,"paquete":130},
-    "TEJA FLEXIFORTE #10": {"largo":10,"peso":29.54,"paquete":100},
+PRODUCTOS_BASE = {
+    "4": {"peso": 11.82, "paquete": 130, "largo_ft": 4},
+    "5": {"peso": 14.77, "paquete": 130, "largo_ft": 5},
+    "6": {"peso": 17.72, "paquete": 130, "largo_ft": 6},
+    "8": {"peso": 23.63, "paquete": 130, "largo_ft": 8},
+    "10": {"peso": 29.54, "paquete": 100, "largo_ft": 10},
 }
 
-# ---------------------------
-# VEHICULOS
-# ---------------------------
+# -----------------------------
+# VEHÍCULOS
+# -----------------------------
 
 VEHICULOS = [
-
-    {"tipo":"TURBO","largo":16,"capacidad":5000},
-    {"tipo":"SENCILLO","largo":20,"capacidad":10000},
-    {"tipo":"DOBLE TROQUE","largo":24,"capacidad":18000},
-    {"tipo":"CUATRO MANOS","largo":28,"capacidad":22000},
-    {"tipo":"MULA","largo":40,"capacidad":34000}
-
+    {"tipo": "TURBO", "capacidad_max": 5000, "largo_planchon_ft": 16},
+    {"tipo": "SENCILLO", "capacidad_max": 10000, "largo_planchon_ft": 20},
+    {"tipo": "DOBLE TROQUE", "capacidad_max": 18000, "largo_planchon_ft": 24},
+    {"tipo": "CUATRO MANOS", "capacidad_max": 22000, "largo_planchon_ft": 28},
+    {"tipo": "MULA", "capacidad_max": 34000, "largo_planchon_ft": 40},
 ]
 
+# -----------------------------
+# ESTADO LOGIN
+# -----------------------------
 
-# ---------------------------
-# INTERFAZ
-# ---------------------------
+if "autenticado" not in st.session_state:
+    st.session_state.autenticado = False
 
-st.image("ETERNIT LOGOS.webp", width=200)
+# ==========================================================
+# LOGIN
+# ==========================================================
 
-st.markdown(
-    "<h3 style='text-align:center;color:red;'>Simulador de Cargue</h3>",
-    unsafe_allow_html=True
-)
+if not st.session_state.autenticado:
 
-st.write("")
+    st.markdown("""
+    <style>
 
-ref = st.selectbox("Referencia de Teja", list(PRODUCTOS.keys()))
+    [data-testid="stHeaderActionElements"] {display:none;}
 
-cantidad = st.number_input("Cantidad de unidades", min_value=0)
+    div.stButton > button {
+        background-color:#E30613;
+        color:white;
+        border:none;
+        font-weight:bold;
+        padding:12px;
+        font-size:17px;
+        border-radius:8px;
+    }
 
-if st.button("Calcular Cargue"):
+    div.stButton > button:hover{
+        background-color:#b3050f;
+    }
 
-    datos = PRODUCTOS[ref]
+    </style>
+    """, unsafe_allow_html=True)
 
-    largo_teja = datos["largo"]
-    peso_teja = datos["peso"]
-    paquete = datos["paquete"]
+    col1, col2, col3 = st.columns([1,1.4,1])
 
-    # ---------------------------
-    # CALCULOS BASICOS
-    # ---------------------------
+    with col2:
 
-    peso_total = cantidad * peso_teja
+        st.image("logo-eternit-400x150-1.png", use_container_width=True)
 
-    paquetes_totales = math.ceil(cantidad / paquete)
+        st.markdown(
+        """
+        <h1 style='text-align:center;
+        color:#1A3A5A;
+        font-weight:800;
+        font-size:40px;
+        margin-top:10px'>
+        Simulador de Cargue
+        </h1>
+        """,
+        unsafe_allow_html=True
+        )
 
-    vehiculo_elegido = None
+        with st.container(border=True):
 
-    for vh in VEHICULOS:
+            usuario = st.text_input("Correo electrónico").upper()
+            clave = st.text_input("Contraseña", type="password")
 
-        if peso_total <= vh["capacidad"]:
-            vehiculo_elegido = vh
-            break
+            if st.button("Ingresar al Sistema", use_container_width=True):
 
-    if vehiculo_elegido is None:
-        st.error("No hay vehículo disponible para ese peso")
-        st.stop()
+                if usuario == USUARIO_CORRECTO and clave == CLAVE_CORRECTA:
+                    st.session_state.autenticado = True
+                    st.rerun()
 
-    largo_planchon = vehiculo_elegido["largo"]
+                else:
+                    st.error("Credenciales incorrectas")
 
-    # ---------------------------
-    # LOGICA DEL PLANCHON
-    # ---------------------------
+# ==========================================================
+# SISTEMA
+# ==========================================================
 
-    paquetes_lado = largo_planchon // largo_teja
+else:
 
-    paquetes_planchon = paquetes_lado * 2
+    # HEADER
+    st.markdown("""
+    <div style="
+    background:#E30613;
+    padding:12px;
+    border-radius:8px;
+    text-align:center;
+    color:white;
+    font-weight:bold;
+    font-size:22px;
+    margin-bottom:20px;
+    ">
+    🚛 SIMULADOR DE CARGUE - LOGÍSTICA
+    </div>
+    """, unsafe_allow_html=True)
 
-    pasos_usados = paquetes_lado * largo_teja
+    # ESTILOS
 
-    sobrante = largo_planchon - pasos_usados
+    st.markdown("""
+    <style>
 
-    # paquete atravesado
+    .cabina {
+    background:#1A3A5A;
+    color:white;
+    text-align:center;
+    padding:15px;
+    font-weight:bold;
+    border-radius:8px 8px 0 0;
+    border-bottom:5px solid #bdc3c7;
+    }
 
-    if sobrante >= 4:
-        atravesado = 1
+    .paquete-v{
+    background:#27ae60;
+    color:white;
+    text-align:center;
+    padding:12px;
+    margin:4px;
+    border-radius:5px;
+    font-weight:bold;
+    border:1px solid #1e8449;
+    }
+
+    .paquete-h{
+    background:#2980b9;
+    color:white;
+    text-align:center;
+    padding:15px;
+    margin:10px auto;
+    border-radius:6px;
+    font-weight:bold;
+    border:2px dashed #ecf0f1;
+    width:80%;
+    }
+
+    .saldo-box{
+    background:#f1c40f;
+    color:#2c3e50;
+    text-align:center;
+    padding:8px;
+    margin:4px;
+    border-radius:5px;
+    font-size:11px;
+    font-weight:800;
+    border:1px solid #d4ac0d;
+    }
+
+    </style>
+    """, unsafe_allow_html=True)
+
+# ==========================================================
+# SIDEBAR
+# ==========================================================
+
+    with st.sidebar:
+
+        st.header("📋 Pedido")
+
+        raw_data = st.text_area(
+            "Pegue el pedido aquí",
+            height=300,
+            placeholder="Ejemplo:\nTEJA FLEXIFORTE #5 900\nTEJA PERFIL #4 150"
+        )
+
+        if st.button("Limpiar"):
+            st.rerun()
+
+# ==========================================================
+# PROCESAMIENTO PEDIDO
+# ==========================================================
+
+    pedido_items = []
+    peso_total_pedido = 0
+
+    if raw_data:
+
+        lines = raw_data.strip().split("\n")
+
+        for line in lines:
+
+            line_upper = line.upper().strip()
+
+            match_ref = re.search(r'#(\d+)', line_upper)
+
+            if match_ref:
+
+                num_ref = match_ref.group(1)
+
+                if num_ref in PRODUCTOS_BASE:
+
+                    numeros = re.findall(r'\d+', line_upper.replace(f"#{num_ref}", ""))
+
+                    if numeros:
+
+                        cant = int(numeros[-1])
+                        info = PRODUCTOS_BASE[num_ref]
+
+                        nombre = f"FLEX. #{num_ref}" if "FLEXIFORTE" in line_upper else f"TEJA #{num_ref}"
+
+                        pedido_items.append({
+                            "tipo": nombre,
+                            "cant": cant,
+                            "peso": cant * info["peso"],
+                            "ref": num_ref
+                        })
+
+                        peso_total_pedido += cant * info["peso"]
+
+# ==========================================================
+# RESULTADOS
+# ==========================================================
+
+    if pedido_items:
+
+        vh = next((v for v in VEHICULOS if v["capacidad_max"] >= peso_total_pedido), VEHICULOS[-1])
+
+        st.subheader(f"🚛 Vehículo sugerido: {vh['tipo']}")
+
+        c1, c2, c3 = st.columns(3)
+
+        c1.metric("Peso Total", f"{peso_total_pedido:,.2f} kg")
+        c2.metric("Capacidad Vehículo", f"{vh['capacidad_max']:,.0f} kg")
+
+        largo_req = max([PRODUCTOS_BASE[i['ref']]['largo_ft'] for i in pedido_items])
+        c3.metric("Largo requerido", f"{largo_req} ft")
+
+        st.divider()
+
+        st.markdown('<div class="cabina">FRENTE DEL VEHÍCULO (CABINA)</div>', unsafe_allow_html=True)
+
+# ==========================================================
+# LÓGICA DISTRIBUCIÓN
+# ==========================================================
+
+        pedido_sorted = sorted(pedido_items,
+                               key=lambda x: PRODUCTOS_BASE[x['ref']]['largo_ft'],
+                               reverse=True)
+
+        mapa_vertical = []
+        saldos = []
+
+        for item in pedido_sorted:
+
+            paq = PRODUCTOS_BASE[item['ref']]['paquete']
+
+            completos = item["cant"] // paq
+            sobra = item["cant"] % paq
+
+            for _ in range(completos):
+                mapa_vertical.append({"label": item["tipo"], "cant": paq})
+
+            while sobra > 0:
+                cant_s = min(sobra, 60)
+                saldos.append({"label": item["tipo"], "cant": cant_s})
+                sobra -= cant_s
+
+        paq_render = list(mapa_vertical)
+
+        atravesado = paq_render.pop() if len(paq_render) % 2 != 0 else None
+
+        rows = [paq_render[i:i+2] for i in range(0, len(paq_render), 2)]
+
+        saldos_render = list(saldos)
+
+        for row in rows:
+
+            cols = st.columns([1,1.5,1.5,1])
+
+            with cols[0]:
+
+                if saldos_render:
+                    s = saldos_render.pop(0)
+                    st.markdown(f'<div class="saldo-box">{s["label"]}<br>{s["cant"]} UND</div>', unsafe_allow_html=True)
+
+            with cols[1]:
+                st.markdown(f'<div class="paquete-v">{row[0]["label"]}<br>({row[0]["cant"]})</div>', unsafe_allow_html=True)
+
+            with cols[2]:
+
+                if len(row) > 1:
+                    st.markdown(f'<div class="paquete-v">{row[1]["label"]}<br>({row[1]["cant"]})</div>', unsafe_allow_html=True)
+
+            with cols[3]:
+
+                if saldos_render:
+                    s = saldos_render.pop(0)
+                    st.markdown(f'<div class="saldo-box">{s["label"]}<br>{s["cant"]} UND</div>', unsafe_allow_html=True)
+
+        if atravesado:
+
+            st.markdown(
+            f'<div class="paquete-h">📦 PAQUETE COMPLETO TRASERO<br>{atravesado["label"]} ({atravesado["cant"]} UND)</div>',
+            unsafe_allow_html=True
+            )
+
     else:
-        atravesado = 0
 
-    capacidad_planchon = paquetes_planchon + atravesado
-
-    # saldo arriba
-
-    saldo = paquetes_totales - capacidad_planchon
-
-    if saldo > 0:
-        arriba = min(saldo,60)
-    else:
-        arriba = 0
-
-    # ---------------------------
-    # RESULTADOS
-    # ---------------------------
-
-    st.subheader("Resultado del Cargue")
-
-    c1,c2,c3 = st.columns(3)
-
-    c1.metric("Vehículo", vehiculo_elegido["tipo"])
-    c2.metric("Peso total (kg)", round(peso_total,2))
-    c3.metric("Paquetes", paquetes_totales)
-
-    st.write("")
-
-    c1,c2,c3,c4,c5 = st.columns(5)
-
-    c1.metric("Paquetes por lado", paquetes_lado)
-    c2.metric("Planchón", paquetes_planchon)
-    c3.metric("Atravesado", atravesado)
-    c4.metric("Arriba", arriba)
-    c5.metric("Pasos sobrantes", sobrante)
+        st.info("Pegue un pedido en el panel izquierdo para generar la simulación.")
