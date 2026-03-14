@@ -1,5 +1,5 @@
 import streamlit as st
-import pandas as pd
+import pd
 import re
 
 # -----------------------------
@@ -111,14 +111,25 @@ else:
                         peso_total_pedido += cant * info["peso"]
 
 # ==========================================================
-# LÓGICA DE DISTRIBUCIÓN MEJORADA
+# RESULTADOS (CUADRO DE CAPACIDAD)
 # ==========================================================
 
     if pedido_items:
         vh = next((v for v in VEHICULOS if v["capacidad_max"] >= peso_total_pedido), VEHICULOS[-1])
+        porcentaje_carga = (peso_total_pedido / vh["capacidad_max"])
+        
         st.subheader(f"🚛 Vehículo sugerido: {vh['tipo']}")
         
-        # Organizar pedido
+        # Este es el cuadro que pediste con el % de capacidad
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("Peso Total", f"{peso_total_pedido:,.0f} kg")
+        c2.metric("Capacidad Máx", f"{vh['capacidad_max']:,.0f} kg")
+        c3.metric("Ocupación Peso", f"{porcentaje_carga:.1%}")
+        c4.metric("Planchón Total", f"{vh['largo_planchon_ft']} ft")
+        
+        st.progress(min(porcentaje_carga, 1.0))
+
+        # --- LÓGICA DE DISTRIBUCIÓN ---
         pedido_sorted = sorted(pedido_items, key=lambda x: PRODUCTOS_BASE[x['ref']]['largo_ft'], reverse=True)
         paquetes_lista = []
         saldos = []
@@ -127,16 +138,13 @@ else:
             paq_std = PRODUCTOS_BASE[item['ref']]['paquete']
             completos = item["cant"] // paq_std
             sobra = item["cant"] % paq_std
-            
             for _ in range(completos):
                 paquetes_lista.append({"label": item["tipo"], "cant": paq_std, "ref": item["ref"]})
-            
             while sobra > 0:
                 cant_s = min(sobra, 60)
                 saldos.append({"label": item["tipo"], "cant": cant_s})
                 sobra -= cant_s
 
-        # Cálculo de largo ocupado
         tiene_atravesado = len(paquetes_lista) % 2 != 0
         paquetes_pares = paquetes_lista[:-1] if tiene_atravesado else paquetes_lista
         paquete_final = paquetes_lista[-1] if tiene_atravesado else None
@@ -147,50 +155,37 @@ else:
         if tiene_atravesado:
             largo_usado += (4 if paquete_final['ref'] != "10" else PRODUCTOS_BASE[paquete_final['ref']]['largo_ft'])
 
-        if largo_usado > vh["largo_planchon_ft"]:
-            st.error(f"❌ ¡NO CABE! Largo requerido: {largo_usado}ft. Capacidad: {vh['largo_planchon_ft']}ft.")
-        else:
-            c1, c2, c3 = st.columns(3)
-            c1.metric("Peso Total", f"{peso_total_pedido:,.0f} kg")
-            c2.metric("Largo Ocupado", f"{largo_usado} ft")
-            c3.metric("Espacio Libre", f"{vh['largo_planchon_ft'] - largo_usado} ft")
+        st.divider()
 
+        if largo_usado > vh["largo_planchon_ft"]:
+            st.error(f"❌ ¡NO CABE POR LARGO! Requerido: {largo_usado}ft. Capacidad: {vh['largo_planchon_ft']}ft.")
+        else:
             st.markdown('<div class="cabina">FRENTE DEL VEHÍCULO (CABINA)</div>', unsafe_allow_html=True)
             
             rows_verdes = [paquetes_pares[i:i+2] for i in range(0, len(paquetes_pares), 2)]
             saldos_render = list(saldos)
-
-            # --- RENDERIZADO AJUSTADO PARA NO LIMITAR SALDOS ---
-            # Definimos cuántas filas totales podemos mostrar basándonos en si hay verdes o amarillos
             max_filas = max(len(rows_verdes), (len(saldos_render) + 1) // 2)
 
             for i in range(max_filas):
                 cols = st.columns([1,1.5,1.5,1])
-                
-                # Saldo Izquierda
                 with cols[0]:
                     if saldos_render:
                         s = saldos_render.pop(0)
                         st.markdown(f'<div class="saldo-box">{s["label"]}<br>{s["cant"]} UND</div>', unsafe_allow_html=True)
-                
-                # Paquetes Verdes (Centro)
                 if i < len(rows_verdes):
                     row = rows_verdes[i]
-                    with cols[1]:
-                        st.markdown(f'<div class="paquete-v">{row[0]["label"]}<br>({row[0]["cant"]})</div>', unsafe_allow_html=True)
-                    with cols[2]:
-                        if len(row) > 1:
-                            st.markdown(f'<div class="paquete-v">{row[1]["label"]}<br>({row[1]["cant"]})</div>', unsafe_allow_html=True)
-                
-                # Saldo Derecha
+                    with cols[1]: st.markdown(f'<div class="paquete-v">{row[0]["label"]}<br>({row[0]["cant"]})</div>', unsafe_allow_html=True)
+                    with cols[2]: 
+                        if len(row) > 1: st.markdown(f'<div class="paquete-v">{row[1]["label"]}<br>({row[1]["cant"]})</div>', unsafe_allow_html=True)
                 with cols[3]:
                     if saldos_render:
                         s = saldos_render.pop(0)
                         st.markdown(f'<div class="saldo-box">{s["label"]}<br>{s["cant"]} UND</div>', unsafe_allow_html=True)
 
-            # Paquete atravesado final si existe
             if tiene_atravesado:
                 st.markdown(f'<div class="paquete-h">📦 PAQUETE ATRAVESADO (Ocupa 4ft)<br>{paquete_final["label"]} ({paquete_final["cant"]} UND)</div>', unsafe_allow_html=True)
+            
+            st.info(f"Espacio restante en pies: {vh['largo_planchon_ft'] - largo_usado} ft")
 
     else:
         st.info("Pegue un pedido para simular.")
