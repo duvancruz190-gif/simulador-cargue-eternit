@@ -18,6 +18,7 @@ PRODUCTOS_BASE = {
     "10": {"peso": 29.54, "paquete": 100, "largo_ft": 10},
 }
 
+# Límites de peso y largo según tabla técnica
 VEHICULOS = [
     {"tipo": "TURBO", "capacidad_max": 5000, "largo_planchon_ft": 16},
     {"tipo": "SENCILLO", "capacidad_max": 10000, "largo_planchon_ft": 20},
@@ -30,24 +31,15 @@ if "autenticado" not in st.session_state:
     st.session_state.autenticado = False
 
 # ==========================================================
-# 1. BLOQUE DE LOGIN (RESTAURADO)
+# 1. LOGIN CON LOGO (RESTAURADO)
 # ==========================================================
 if not st.session_state.autenticado:
-    st.markdown("""
-    <style>
-    [data-testid="stHeaderActionElements"] {display:none;}
-    div.stButton > button {
-        background-color:#E30613; color:white; border:none; font-weight:bold; padding:12px; font-size:17px; border-radius:8px;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
     col1, col2, col3 = st.columns([1, 1.4, 1])
     with col2:
         try:
             st.image("logo-eternit-400x150-1.png", use_container_width=True)
         except:
-            st.error("Error: Archivo de Logo no encontrado")
+            st.markdown("### ETERNIT - SIMULADOR")
         
         with st.container(border=True):
             usuario = st.text_input("Correo electrónico").upper()
@@ -60,16 +52,17 @@ if not st.session_state.autenticado:
                     st.error("Credenciales incorrectas")
 
 # ==========================================================
-# 2. PANEL PRINCIPAL (SISTEMA DE CARGUE)
+# 2. PANEL PRINCIPAL
 # ==========================================================
 else:
-    st.markdown('<div style="background:#E30613; padding:12px; border-radius:8px; text-align:center; color:white; font-weight:bold; font-size:22px; margin-bottom:20px;">🚛 SIMULADOR DE CARGUE - LOGÍSTICA</div>', unsafe_allow_html=True)
-
+    # Estilos visuales exactos
     st.markdown("""
     <style>
-    .cabina { background:#1A3A5A; color:white; text-align:center; padding:15px; font-weight:bold; border-radius:8px 8px 0 0; border-bottom:5px solid #bdc3c7; }
-    .paquete-v { background:#1b5e20; color:white; text-align:center; padding:12px; margin:4px; border-radius:5px; font-weight:bold; border:1px solid #0d3b11; }
-    .saldo-box { background:#b7950b; color:white; text-align:center; padding:8px; margin:4px; border-radius:5px; font-size:11px; font-weight:800; border:1px solid #7d6608; }
+    .metric-text { font-size: 42px; font-weight: 300; color: #333; }
+    .metric-label { font-size: 24px; color: #666; }
+    .cabina { background:#1A3A5A; color:white; text-align:center; padding:15px; font-weight:bold; border-radius:8px; margin: 20px 0; }
+    .paquete-v { background:#1b5e20; color:white; text-align:center; padding:12px; margin:4px; border-radius:5px; font-weight:bold; border:1px solid #0d3b11; font-size:14px; }
+    .saldo-box { background:#b7950b; color:white; text-align:center; padding:10px; margin:4px; border-radius:5px; font-weight:bold; border:1px solid #7d6608; font-size:12px; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -93,79 +86,71 @@ else:
                     if nums:
                         cant = int(nums[-1])
                         info = PRODUCTOS_BASE[ref]
-                        pedido_items.append({
-                            "tipo": f"TEJA #{ref}", "cant": cant, "peso": cant * info["peso"], 
-                            "ref_num": int(ref), "largo": info["largo_ft"]
-                        })
+                        pedido_items.append({"tipo": f"TEJA #{ref}", "cant": cant, "peso": cant * info["peso"], "ref_num": int(ref), "largo": info["largo_ft"]})
                         peso_total_pedido += cant * info["peso"]
 
     if pedido_items:
-        # --- MÉTRICAS Y ALERTAS DE CAPACIDAD ---
+        # --- ENCABEZADO DE MÉTRICAS ORIGINAL ---
         vh = next((v for v in VEHICULOS if v["capacidad_max"] >= peso_total_pedido), VEHICULOS[-1])
         
-        if peso_total_pedido > 34000:
-            st.error(f"❌ EL PEDIDO EXCEDE LA CAPACIDAD MÁXIMA DEL VEHÍCULO POR {peso_total_pedido - 34000:,.2f} KG")
+        m1, m2, m3 = st.columns([1, 1, 1])
+        with m1: st.markdown(f'<p class="metric-text">{peso_total_pedido:,.2f} kg</p>', unsafe_allow_html=True)
+        with m2: st.markdown(f'<p class="metric-text" style="text-align:center">{vh["tipo"]}</p>', unsafe_allow_html=True)
+        with m3: st.markdown(f'<p class="metric-text" style="text-align:right">{vh["largo_planchon_ft"]} ft</p>', unsafe_allow_html=True)
         
-        c1, c2, c3 = st.columns(3)
-        c1.metric("Peso Total", f"{peso_total_pedido:,.2f} kg")
-        c2.metric("Vehículo Sugerido", vh['tipo'])
-        c3.metric("Largo Planchón", f"{vh['largo_planchon_ft']} ft")
+        st.divider()
 
-        # --- LÓGICA DE DISTRIBUCIÓN POR COLUMNAS (PIKING) ---
+        # --- LÓGICA DE CARGUE ---
         inventario = []
-        # Preparamos los bultos (paquetes completos y saldos repartidos)
         for item in sorted(pedido_items, key=lambda x: x['ref_num'], reverse=True):
             paq_max = PRODUCTOS_BASE[str(item['ref_num'])]['paquete']
-            # Paquetes verdes
+            # Paquetes completos
             for _ in range(item["cant"] // paq_max):
                 inventario.append({"label": item["tipo"], "cant": paq_max, "largo": item["largo"], "es_paq": True})
-            # Saldos amarillos (repartidos para balance de peso)
+            # Saldos amarillos
             sobra = item["cant"] % paq_max
-            if sobra > 40: # Si el saldo es pesado, lo dividimos en dos para equilibrar
-                inventario.append({"label": item["tipo"], "cant": sobra // 2, "largo": item["largo"], "es_paq": False})
-                inventario.append({"label": item["tipo"], "cant": sobra - (sobra // 2), "largo": item["largo"], "es_paq": False})
-            elif sobra > 0:
+            if sobra > 0:
                 inventario.append({"label": item["tipo"], "cant": sobra, "largo": item["largo"], "es_paq": False})
 
         col_izq, col_der = [], []
         largo_izq, largo_der = 0, 0
         limite = vh['largo_planchon_ft']
-        fueron_al_planchon = False
+        no_cupo = False
 
-        # Llenado inteligente de columnas para aprovechar los pasos (Tetris)
+        # Llenado por columnas independientes para aprovechar espacios
         for p in inventario:
-            # Mandar a la columna con más espacio libre
             if largo_izq <= largo_der:
                 if largo_izq + p['largo'] <= limite:
                     col_izq.append(p); largo_izq += p['largo']
                 elif largo_der + p['largo'] <= limite:
                     col_der.append(p); largo_der += p['largo']
-                else: fueron_al_planchon = True
+                else: no_cupo = True
             else:
                 if largo_der + p['largo'] <= limite:
                     col_der.append(p); largo_der += p['largo']
                 elif largo_izq + p['largo'] <= limite:
                     col_izq.append(p); largo_izq += p['largo']
-                else: fueron_al_planchon = True
+                else: no_cupo = True
 
-        # --- REPRESENTACIÓN VISUAL ---
-        st.divider()
+        # --- DIBUJO DEL VEHÍCULO ---
         st.markdown('<div class="cabina">FRENTE DEL VEHÍCULO (CABINA)</div>', unsafe_allow_html=True)
         
-        # Dibujar filas basadas en las columnas independientes
-        max_bultos = max(len(col_izq), len(col_der))
-        for i in range(max_bultos):
+        for i in range(max(len(col_izq), len(col_der))):
             cols = st.columns([1, 2, 2, 1])
             with cols[1]:
                 if i < len(col_izq):
                     b = col_izq[i]
-                    estilo = "paquete-v" if b["es_paq"] else "saldo-box"
-                    st.markdown(f'<div class="{estilo}">{b["label"]} ({b["cant"]} UND)</div>', unsafe_allow_html=True)
+                    clase = "paquete-v" if b["es_paq"] else "saldo-box"
+                    st.markdown(f'<div class="{clase}">{b["label"]} ({b["cant"]} UND)</div>', unsafe_allow_html=True)
             with cols[2]:
                 if i < len(col_der):
                     b = col_der[i]
-                    estilo = "paquete-v" if b["es_paq"] else "saldo-box"
-                    st.markdown(f'<div class="{estilo}">{b["label"]} ({b["cant"]} UND)</div>', unsafe_allow_html=True)
+                    clase = "paquete-v" if b["es_paq"] else "saldo-box"
+                    st.markdown(f'<div class="{clase}">{b["label"]} ({b["cant"]} UND)</div>', unsafe_allow_html=True)
 
-        if fueron_al_planchon:
-            st.error("⚠️ ALARMA: NO CABE TODO EL PEDIDO EN EL VEHÍCULO POR DIMENSIONES DEL PLANCHÓN.")
+        # --- ALARMAS ---
+        if peso_total_pedido > 34000:
+            st.error(f"⚠️ ALARMA: SE EXCEDE CAPACIDAD DEL VEHÍCULO POR {peso_total_pedido - 34000:,.2f} KG")
+        
+        if no_cupo:
+            st.warning("⚠️ ALARMA: NO CABE TODO EL PEDIDO EN EL VEHÍCULO POR DIMENSIONES DEL PLANCHÓN.")
