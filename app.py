@@ -8,7 +8,7 @@ import plotly.graph_objects as go
 # -----------------------------
 
 st.set_page_config(
-    page_title="Simulador de Cargue",
+    page_title="Simulador de Cargue 2D",
     page_icon="🚛",
     layout="wide"
 )
@@ -33,91 +33,12 @@ PRODUCTOS_BASE = {
 # -----------------------------
 
 VEHICULOS = [
-    {"tipo":"TURBO","capacidad":5000},
-    {"tipo":"SENCILLO","capacidad":10000},
-    {"tipo":"DOBLE TROQUE","capacidad":18000},
-    {"tipo":"CUATRO MANOS","capacidad":22000},
-    {"tipo":"MULA","capacidad":34000},
+    {"tipo": "TURBO", "capacidad": 5000, "largo": 20, "ancho": 4},
+    {"tipo": "SENCILLO", "capacidad": 10000, "largo": 24, "ancho": 5},
+    {"tipo": "DOBLE TROQUE", "capacidad": 18000, "largo": 28, "ancho": 6},
+    {"tipo": "CUATRO MANOS", "capacidad": 22000, "largo": 32, "ancho": 6},
+    {"tipo": "MULA", "capacidad": 34000, "largo": 40, "ancho": 8},
 ]
-
-# -----------------------------
-# FUNCIÓN CAMIÓN 3D
-# -----------------------------
-
-def dibujar_camion(paquetes):
-
-    fig = go.Figure()
-
-    # CABINA
-    fig.add_trace(go.Mesh3d(
-        x=[-2,-1,-1,-2,-2,-1,-1,-2],
-        y=[0,0,2,2,0,0,2,2],
-        z=[0,0,0,0,2,2,2,2],
-        color="blue",
-        opacity=0.9
-    ))
-
-    # PLANCHÓN
-    fig.add_trace(go.Mesh3d(
-        x=[0,12,12,0,0,12,12,0],
-        y=[0,0,4,4,0,0,4,4],
-        z=[0,0,0,0,0.3,0.3,0.3,0.3],
-        color="gray",
-        opacity=0.4
-    ))
-
-    # RUEDAS
-    for i in [1,4,8,11]:
-
-        fig.add_trace(go.Scatter3d(
-            x=[i],
-            y=[-0.3],
-            z=[0],
-            mode='markers',
-            marker=dict(size=10,color="black")
-        ))
-
-        fig.add_trace(go.Scatter3d(
-            x=[i],
-            y=[4.3],
-            z=[0],
-            mode='markers',
-            marker=dict(size=10,color="black")
-        ))
-
-    # CARGA
-    x=0.5
-    y=0.3
-    z=0.3
-
-    for i in range(len(paquetes)):
-
-        fig.add_trace(go.Mesh3d(
-            x=[x,x+0.9,x+0.9,x,x,x+0.9,x+0.9,x],
-            y=[y,y,y+0.9,y+0.9,y,y,y+0.9,y+0.9],
-            z=[z,z,z,z,z+0.6,z+0.6,z+0.6,z+0.6],
-            color="red",
-            opacity=0.9
-        ))
-
-        y += 1
-
-        if y > 3:
-            y = 0.3
-            x += 1
-
-    fig.update_layout(
-        title="Simulación 3D del Cargue del Camión",
-        scene=dict(
-            xaxis_title="Largo",
-            yaxis_title="Ancho",
-            zaxis_title="Altura"
-        ),
-        height=600
-    )
-
-    return fig
-
 
 # -----------------------------
 # LOGIN
@@ -128,26 +49,19 @@ if "login" not in st.session_state:
 
 if not st.session_state.login:
 
-    col1,col2,col3 = st.columns([1,1.5,1])
+    col1, col2, col3 = st.columns([1, 1.5, 1])
 
     with col2:
-
         st.image("logo-eternit-400x150-1.png", use_container_width=True)
-
         st.markdown(
-        """
-        <h1 style='text-align:center;color:#1A3A5A;font-size:40px'>
-        Simulador de Cargue
-        </h1>
-        """,
-        unsafe_allow_html=True
+            "<h1 style='text-align:center;color:#1A3A5A;font-size:40px'>Simulador de Cargue 2D</h1>",
+            unsafe_allow_html=True,
         )
 
         usuario = st.text_input("Correo")
         clave = st.text_input("Contraseña", type="password")
 
         if st.button("Ingresar"):
-
             if usuario.upper() == USUARIO_CORRECTO and clave == CLAVE_CORRECTA:
                 st.session_state.login = True
                 st.rerun()
@@ -155,99 +69,114 @@ if not st.session_state.login:
                 st.error("Credenciales incorrectas")
 
 # -----------------------------
-# APP PRINCIPAL
+# APP
 # -----------------------------
 
 else:
 
-    st.title("🚛 Simulador Logístico de Cargue")
+    st.title("🚛 Simulador Logístico 2D")
 
     with st.sidebar:
+        st.header("Pedido")
+        raw = st.text_area("Pegue el pedido", height=250)
 
-        st.header("Ingreso del Pedido")
-
-        raw = st.text_area(
-            "Pegue el pedido",
-            placeholder="TEJA FLEXIFORTE #5 900"
-        )
-
-    pedido=[]
-    peso_total=0
+    pedido = []
+    peso_total = 0
 
     if raw:
 
-        lines=raw.split("\n")
+        lines = raw.strip().split("\n")
 
         for line in lines:
+            line = line.upper().strip()
+            match_ref = re.search(r"#(\d+)", line)
 
-            line=line.upper()
+            if match_ref:
+                num_ref = match_ref.group(1)
 
-            ref=re.search(r"#(\d+)",line)
+                if num_ref in PRODUCTOS_BASE:
+                    nums = re.findall(r"\d+", line.replace(f"#{num_ref}", ""))
 
-            if ref:
+                    if nums:
+                        cant = int(nums[-1])
+                        peso = cant * PRODUCTOS_BASE[num_ref]["peso"]
 
-                r=ref.group(1)
-
-                if r in PRODUCTOS_BASE:
-
-                    numeros=re.findall(r"\d+",line.replace(f"#{r}",""))
-
-                    if numeros:
-
-                        cant=int(numeros[-1])
-
-                        peso=cant*PRODUCTOS_BASE[r]["peso"]
-
-                        pedido.append({
-                            "Referencia":r,
-                            "Cantidad":cant,
-                            "Peso":peso
-                        })
-
-                        peso_total+=peso
+                        pedido.append({"ref": num_ref, "cantidad": cant})
+                        peso_total += peso
 
     if pedido:
 
-        df=pd.DataFrame(pedido)
+        # Escoger Vehículo
+        vh = next((v for v in VEHICULOS if v["capacidad"] >= peso_total), VEHICULOS[-1])
 
-        vh=next((v for v in VEHICULOS if v["capacidad"]>=peso_total),VEHICULOS[-1])
+        toneladas = peso_total / 1000
 
-        toneladas=peso_total/1000
+        porcentaje = (peso_total / vh["capacidad"]) * 100
 
-        ocupacion=(peso_total/vh["capacidad"])*100
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("Peso total (kg)", f"{peso_total:,.0f}")
+        c2.metric("Toneladas", f"{toneladas:.2f}")
+        c3.metric("Vehículo sugerido", vh["tipo"])
+        c4.metric("% Ocupación", f"{porcentaje:.1f}%")
 
-        c1,c2,c3,c4=st.columns(4)
-
-        c1.metric("Peso total kg",f"{peso_total:,.0f}")
-        c2.metric("Toneladas",f"{toneladas:.2f}")
-        c3.metric("Vehículo recomendado",vh["tipo"])
-        c4.metric("Ocupación",f"{ocupacion:.1f}%")
-
-        st.progress(min(ocupacion/100,1.0))
-
-        st.subheader("Detalle del pedido")
-
-        st.dataframe(df,use_container_width=True)
-
-        paquetes=[]
-
-        for p in pedido:
-
-            size=PRODUCTOS_BASE[p["Referencia"]]["paquete"]
-
-            completos=p["Cantidad"]//size
-
+        # Preparar data para 2D
+        paquetes = []
+        for item in pedido:
+            paq_size = PRODUCTOS_BASE[item["ref"]]["paquete"]
+            completos = item["cantidad"] // paq_size
             for i in range(completos):
-                paquetes.append(p)
+                paquetes.append(item)
 
-        st.divider()
+        # Representación 2D
+        fig = go.Figure()
 
-        st.subheader("Simulación 3D del cargue")
+        # Dibujar contorno del camión
+        fig.add_shape(
+            type="rect",
+            x0=0,
+            y0=0,
+            x1=vh["largo"],
+            y1=vh["ancho"],
+            line=dict(color="black", width=3),
+        )
 
-        fig=dibujar_camion(paquetes)
+        # Añadir cada paquete como rectángulo
+        row = 0
+        col = 0
+        unit = 3  # espacio base por paquete
 
-        st.plotly_chart(fig,use_container_width=True)
+        for i, p in enumerate(paquetes):
+
+            # posición del rectángulo
+            x0 = col * unit
+            y0 = row * unit
+            x1 = x0 + (unit - 0.2)
+            y1 = y0 + (unit - 0.2)
+
+            fig.add_shape(
+                type="rect",
+                x0=x0,
+                y0=y0,
+                x1=x1,
+                y1=y1,
+                fillcolor="red",
+                line=dict(color="black"),
+            )
+
+            # avanzar filas
+            col += 1
+            if (col + 1) * unit > vh["largo"]:
+                col = 0
+                row += 1
+
+        fig.update_layout(
+            title="Plano de cargue 2D (vista superior)",
+            xaxis=dict(title="Largo del vehículo", range=[0, vh["largo"] + 1]),
+            yaxis=dict(title="Ancho del vehículo", range=[0, vh["ancho"] + 1]),
+            height=500,
+        )
+
+        st.plotly_chart(fig, use_container_width=True)
 
     else:
-
-        st.info("Ingrese un pedido para generar la simulación.")
+        st.info("Pega un pedido para generar la simulación.")
