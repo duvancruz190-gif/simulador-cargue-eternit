@@ -29,8 +29,8 @@ VEHICULOS = [
 if "autenticado" not in st.session_state:
     st.session_state.autenticado = False
 
-# --- LOGIN ---
 if not st.session_state.autenticado:
+    # --- LOGIN ---
     st.markdown("<style>div.stButton > button { background-color:#E30613; color:white; font-weight:bold; }</style>", unsafe_allow_html=True)
     col1, col2, col3 = st.columns([1,1.4,1])
     with col2:
@@ -46,14 +46,14 @@ if not st.session_state.autenticado:
                 else: st.error("Credenciales incorrectas")
 else:
     # --- INTERFAZ PRINCIPAL ---
-    st.markdown('<div style="background:#E30613; padding:12px; border-radius:8px; text-align:center; color:white; font-weight:bold; font-size:22px; margin-bottom:20px;">🚛 SIMULADOR DE CARGUE - BALANCEADO</div>', unsafe_allow_html=True)
+    st.markdown('<div style="background:#E30613; padding:12px; border-radius:8px; text-align:center; color:white; font-weight:bold; font-size:22px; margin-bottom:20px;">🚛 SIMULADOR DE CARGUE - LÓGICA DE SALDOS MÁX 60</div>', unsafe_allow_html=True)
 
     st.markdown("""
     <style>
     .cabina { background:#1A3A5A; color:white; text-align:center; padding:15px; font-weight:bold; border-radius:8px 8px 0 0; }
-    .paquete-v { background:#1b5e20; color:white; text-align:center; padding:12px; margin:4px; border-radius:5px; font-weight:bold; border:1px solid #0d3b11; min-height: 90px; display: flex; align-items: center; justify-content: center; flex-direction: column; }
-    .saldo-box { background:#b7950b; color:white; text-align:center; padding:8px; margin:4px; border-radius:5px; font-size:11px; font-weight:800; border:1px solid #7d6608; }
-    .footer-pies { background: #f0f2f6; padding: 5px; text-align: center; border-radius: 0 0 5px 5px; font-weight: bold; border: 1px solid #d1d3d8; margin-bottom: 10px; font-size: 14px; }
+    .paquete-v { background:#1b5e20; color:white; text-align:center; padding:12px; margin:4px; border-radius:5px; font-weight:bold; border:1px solid #0d3b11; min-height: 85px; display: flex; align-items: center; justify-content: center; flex-direction: column; }
+    .saldo-box { background:#b7950b; color:white; text-align:center; padding:12px; margin:4px; border-radius:5px; font-weight:bold; border:1px solid #7d6608; min-height: 85px; display: flex; align-items: center; justify-content: center; flex-direction: column; }
+    .footer-pies { background: #f0f2f6; padding: 8px; text-align: center; border-radius: 0 0 5px 5px; font-weight: bold; border: 1px solid #d1d3d8; margin-bottom: 10px; color: #1A3A5A; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -77,86 +77,77 @@ else:
                     if numeros:
                         cant = int(numeros[-1])
                         info = PRODUCTOS_BASE[num_ref]
-                        pedido_items.append({
-                            "tipo": f"TEJA #{num_ref}", "cant": cant, "peso": cant * info["peso"], 
-                            "ref_num": int(num_ref), "largo_ft": info["largo_ft"], "paquete_nom": info["paquete"]
-                        })
+                        pedido_items.append({"tipo": f"TEJA #{num_ref}", "cant": cant, "peso": cant * info["peso"], "largo": info["largo_ft"], "paquete_nom": info["paquete"]})
                         peso_total_pedido += cant * info["peso"]
 
     if pedido_items:
-        # Selección de vehículo y alertas de peso
         vh = next((v for v in VEHICULOS if v["capacidad_max"] >= peso_total_pedido), VEHICULOS[-1])
         
-        c1, c2, c3 = st.columns(3)
-        c1.metric("Peso Total", f"{peso_total_pedido:,.2f} kg")
-        c2.metric("Vehículo Sugerido", vh['tipo'])
-        c3.metric("Capacidad Máxima", f"{vh['capacidad_max']:,.0f} kg")
-
-        if peso_total_pedido > VEHICULOS[-1]['capacidad_max']:
-            st.error(f"❌ EL PEDIDO EXCEDE LA CAPACIDAD MÁXIMA POR {peso_total_pedido - VEHICULOS[-1]['capacidad_max']:,.2f} KG")
-
-        # --- LÓGICA DE BALANCEO POR CARRILES ---
+        # --- LÓGICA DE CARRILES CON TOPE DE 60 ---
         carril_izq = []
         carril_der = []
-        todos_saldos = []
         
-        # Ordenar por largo para estabilidad (las más largas adelante)
-        pedido_sorted = sorted(pedido_items, key=lambda x: x['largo_ft'], reverse=True)
+        pedido_sorted = sorted(pedido_items, key=lambda x: x['largo'], reverse=True)
 
         for item in pedido_sorted:
-            paq_nom = item['paquete_nom']
-            num_paquetes = item['cant'] // paq_nom
-            sobrante_unidades = item['cant'] % paq_nom
+            p_nom = item['paquete_nom']
+            num_paquetes = item['cant'] // p_nom
+            sobra = item['cant'] % p_nom
             
-            # Emparejar paquetes verdes (2 en 2)
-            while num_paquetes >= 2:
-                bulto = {"label": item["tipo"], "cant": paq_nom, "largo": item["largo_ft"]}
+            # 1. Paquetes verdes completos (Pares)
+            for _ in range(num_paquetes // 2):
+                bulto = {"label": item["tipo"], "cant": p_nom, "largo": item["largo"], "color": "verde"}
                 carril_izq.append(bulto)
                 carril_der.append(bulto)
-                num_paquetes -= 2
             
-            # Si queda uno solo (IMPAR), lo partimos para subirlo como saldos
-            if num_paquetes == 1:
-                mitad = paq_nom // 2
-                resto = paq_nom - mitad
-                todos_saldos.append({"label": item["tipo"], "cant": mitad})
-                todos_saldos.append({"label": item["tipo"], "cant": resto})
+            # 2. Manejo de sobrantes (Paquete impar + unidades sueltas)
+            unidades_restantes = (p_nom if num_paquetes % 2 != 0 else 0) + sobra
             
-            # Sumar las unidades sueltas originales a la lista de saldos
-            if sobrante_unidades > 0:
-                todos_saldos.append({"label": item["tipo"], "cant": sobrante_unidades})
+            while unidades_restantes > 0:
+                # Si el total restante es > 120, sacamos 60 para cada lado
+                # Si es < 120, repartimos a la mitad (máximo 60)
+                por_lado = min(unidades_restantes // 2, 60)
+                if por_lado == 0 and unidades_restantes > 0: por_lado = unidades_restantes # Caso última unidad
+                
+                mitad = por_lado
+                resto = por_lado # Mantenemos simetría
+                
+                # Para asegurar que no excedemos el total en el último bulto
+                if (mitad + resto) > unidades_restantes:
+                    mitad = unidades_restantes // 2
+                    resto = unidades_restantes - mitad
 
-        # --- RENDERIZADO VISUAL ---
+                carril_izq.append({"label": item["tipo"], "cant": mitad, "largo": item["largo"], "color": "amarillo"})
+                carril_der.append({"label": item["tipo"], "cant": resto, "largo": item["largo"], "color": "amarillo"})
+                unidades_restantes -= (mitad + resto)
+                if unidades_restantes <= 1: unidades_restantes = 0 # Evitar bucles por decimales
+
+        # --- RENDERIZADO ---
         st.divider()
         st.markdown('<div class="cabina">FRENTE DEL VEHÍCULO (CABINA)</div>', unsafe_allow_html=True)
-
-        col_ext_izq, col_int_izq, col_int_der, col_ext_der = st.columns([1, 2, 2, 1])
-
-        largo_final = sum([p['largo'] for p in carril_izq])
-
-        with col_int_izq:
-            for p in carril_izq:
-                st.markdown(f'<div class="paquete-v">{p["label"]}<br>({p["cant"]} UND)<br>{p["largo"]} ft</div>', unsafe_allow_html=True)
-            st.markdown(f'<div class="footer-pies">{largo_final} ft</div>', unsafe_allow_html=True)
-
-        with col_int_der:
-            for p in carril_der:
-                st.markdown(f'<div class="paquete-v">{p["label"]}<br>({p["cant"]} UND)<br>{p["largo"]} ft</div>', unsafe_allow_html=True)
-            st.markdown(f'<div class="footer-pies">{largo_final} ft</div>', unsafe_allow_html=True)
-
-        # Repartir saldos amarillos a los costados
-        with col_ext_izq:
-            for i in range(0, len(todos_saldos), 2):
-                s = todos_saldos[i]
-                st.markdown(f'<div class="saldo-box">{s["label"]}<br>{s["cant"]} UND</div>', unsafe_allow_html=True)
         
-        with col_ext_der:
-            for i in range(1, len(todos_saldos), 2):
-                s = todos_saldos[i]
-                st.markdown(f'<div class="saldo-box">{s["label"]}<br>{s["cant"]} UND</div>', unsafe_allow_html=True)
+        col_izq, col_der = st.columns(2)
+        
+        largo_izq = sum([p['largo'] for p in carril_izq])
+        largo_der = sum([p['largo'] for p in carril_der])
 
-        # Alarma de espacio físico
-        if largo_final > vh['largo_planchon_ft']:
-            st.error(f"⚠️ NO CABE: El cargue mide {largo_final} ft y el planchón del {vh['tipo']} es de {vh['largo_planchon_ft']} ft.")
-        else:
-            st.success(f"✅ Cargue balanceado y optimizado para {vh['tipo']}.")
+        with col_izq:
+            for p in carril_izq:
+                clase = "paquete-v" if p['color'] == "verde" else "saldo-box"
+                st.markdown(f'<div class="{clase}">{p["label"]}<br>({p["cant"]} UND)<br>{p["largo"]} ft</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="footer-pies">Total Izq: {largo_izq} ft</div>', unsafe_allow_html=True)
+
+        with col_der:
+            for p in carril_der:
+                clase = "paquete-v" if p['color'] == "verde" else "saldo-box"
+                st.markdown(f'<div class="{clase}">{p["label"]}<br>({p["cant"]} UND)<br>{p["largo"]} ft</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="footer-pies">Total Der: {largo_der} ft</div>', unsafe_allow_html=True)
+
+        # Alarma de Peso y Espacio
+        max_largo = max(largo_izq, largo_der)
+        c1, c2 = st.columns(2)
+        c1.metric("Peso Total", f"{peso_total_pedido:,.2f} kg")
+        c2.metric("Largo Ocupado", f"{max_largo} ft")
+
+        if max_largo > vh['largo_planchon_ft']:
+            st.error(f"⚠️ NO CABE EN {vh['tipo']}: Largo excedido.")
