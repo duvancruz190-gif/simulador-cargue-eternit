@@ -51,9 +51,8 @@ else:
     st.markdown("""
     <style>
     .cabina { background:#1A3A5A; color:white; text-align:center; padding:15px; font-weight:bold; border-radius:8px 8px 0 0; }
-    .paquete-v { background:#1b5e20; color:white; text-align:center; padding:12px; margin:4px; border-radius:5px; font-weight:bold; border:1px solid #0d3b11; font-size:14px; }
+    .paquete-v { background:#1b5e20; color:white; text-align:center; padding:12px; margin:4px; border-radius:5px; font-weight:bold; border:1px solid #0d3b11; font-size:13px; }
     .saldo-box { background:#b7950b; color:white; text-align:center; padding:8px; margin:4px; border-radius:5px; font-size:12px; font-weight:800; border:1px solid #7d6608; }
-    .metric-box { background:#f8f9fa; padding:10px; border-radius:8px; border-left: 5px solid #E30613; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -89,10 +88,10 @@ else:
         
         c1, c2, c3 = st.columns(3)
         c1.metric("Peso Total", f"{peso_total_pedido:,.2f} kg")
-        c2.metric("Vehículo", vh['tipo'])
-        c3.metric("Largo Disponible", f"{limite_ft} ft")
+        c2.metric("Vehículo Sugerido", vh['tipo'])
+        c3.metric("Largo Máximo", f"{limite_ft} ft")
 
-        # --- LÓGICA DE DISTRIBUCIÓN TIPO EXCEL ---
+        # --- LÓGICA DE DISTRIBUCIÓN BASADA EN ESQUEMA ---
         pedido_sorted = sorted(pedido_items, key=lambda x: x['ref_num'], reverse=True)
         paquetes_verdes = []
         saldos_naranja = []
@@ -103,68 +102,61 @@ else:
             sobra = item["cant"] % paq_max
             for _ in range(completos):
                 paquetes_verdes.append({"label": item["tipo"], "cant": paq_max, "largo": item["largo_ft"]})
-            if sobra > 0:
-                saldos_naranja.append({"label": item["tipo"], "cant": sobra, "largo": item["largo_ft"]})
+            # Los saldos se agrupan en lotes de hasta 60 como en tu Excel
+            while sobra > 0:
+                unidades = min(sobra, 60)
+                saldos_naranja.append({"label": item["tipo"], "cant": unidades, "largo": item["largo_ft"]})
+                sobra -= unidades
 
-        # Preparamos las columnas como en tu esquema
-        col_izq = []
-        col_centro_1 = []
-        col_centro_2 = []
-        col_der = []
-
-        # Llenamos el centro (Paquetes Verdes)
-        temp_verdes = list(paquetes_verdes)
-        while temp_verdes:
-            col_centro_1.append(temp_verdes.pop(0))
-            if temp_verdes:
-                col_centro_2.append(temp_verdes.pop(0))
-
-        # Llenamos los laterales con saldos (Reparto balanceado)
-        temp_saldos = list(saldos_naranja)
-        while temp_saldos:
-            col_izq.append(temp_saldos.pop(0))
-            if temp_saldos:
-                col_der.append(temp_saldos.pop(0))
+        # Repartir en 4 carriles (Lateral Izq, Centro 1, Centro 2, Lateral Der)
+        col_izq, col_c1, col_c2, col_der = [], [], [], []
+        
+        # Centro: Paquetes Verdes
+        for i, p in enumerate(paquetes_verdes):
+            if i % 2 == 0: col_c1.append(p)
+            else: col_c2.append(p)
+            
+        # Laterales: Saldos (distribución balanceada)
+        for i, s in enumerate(saldos_naranja):
+            if i % 2 == 0: col_izq.append(s)
+            else: col_der.append(s)
 
         st.divider()
         st.markdown('<div class="cabina">CABINA</div>', unsafe_allow_html=True)
 
-        # Determinar cuántas filas visuales necesitamos
-        max_rows = max(len(col_izq), len(col_centro_1), len(col_centro_2), len(col_der))
-
-        # RENDERIZADO DE LA GRILLA
+        # Renderizado de filas dinámicas
+        max_rows = max(len(col_izq), len(col_c1), len(col_c2), len(col_der))
         for i in range(max_rows):
-            c = st.columns([1, 1, 1, 1])
-            
-            with c[0]: # Lateral Izquierdo
+            cols = st.columns([1, 1, 1, 1])
+            with cols[0]:
                 if i < len(col_izq):
-                    s = col_izq[i]
-                    st.markdown(f'<div class="saldo-box">{s["label"]} SALDO {s["cant"]}</div>', unsafe_allow_html=True)
-            
-            with c[1]: # Centro 1
-                if i < len(col_centro_1):
-                    p = col_centro_1[i]
-                    st.markdown(f'<div class="paquete-v">{p["label"]}: {p["cant"]} UND</div>', unsafe_allow_html=True)
-            
-            with c[2]: # Centro 2
-                if i < len(col_centro_2):
-                    p = col_centro_2[i]
-                    st.markdown(f'<div class="paquete-v">{p["label"]}: {p["cant"]} UND</div>', unsafe_allow_html=True)
-            
-            with c[3]: # Lateral Derecho
+                    st.markdown(f'<div class="saldo-box">{col_izq[i]["label"]} SALDO {col_izq[i]["cant"]}</div>', unsafe_allow_html=True)
+            with cols[1]:
+                if i < len(col_c1):
+                    st.markdown(f'<div class="paquete-v">{col_c1[i]["label"]}: {col_c1[i]["cant"]} UND</div>', unsafe_allow_html=True)
+            with cols[2]:
+                if i < len(col_c2):
+                    st.markdown(f'<div class="paquete-v">{col_c2[i]["label"]}: {col_c2[i]["cant"]} UND</div>', unsafe_allow_html=True)
+            with cols[3]:
                 if i < len(col_der):
-                    s = col_der[i]
-                    st.markdown(f'<div class="saldo-box">{s["label"]} SALDO {s["cant"]}</div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="saldo-box">{col_der[i]["label"]} SALDO {col_der[i]["cant"]}</div>', unsafe_allow_html=True)
 
-        # CÁLCULO DE PASOS (PIES) REALES
+        # Cálculo de "Pasos" (Longitud por carril)
         pasos_izq = sum(x['largo'] for x in col_izq)
-        pasos_centro = sum(x['largo'] for x in col_centro_1)
+        pasos_c1 = sum(x['largo'] for x in col_c1)
+        pasos_c2 = sum(x['largo'] for x in col_c2)
         pasos_der = sum(x['largo'] for x in col_der)
         
-        largo_maximo_final = max(pasos_izq, pasos_centro, pasos_der)
+        max_pasos = max(pasos_izq, pasos_c1, pasos_c2, pasos_der)
 
         st.markdown("---")
-        if largo_maximo_final <= limite_ft:
-            st.success(f"✅ CARGUE COMPLETADO - LARGO OCUPADO: {largo_maximo_final} ft / {limite_ft} ft")
+        st.subheader("📊 Resumen de Espacio (Pies)")
+        m1, m2, m3 = st.columns(3)
+        m1.metric("Lateral Izquierdo", f"{pasos_izq} ft")
+        m2.metric("Centro (Máximo)", f"{max(pasos_c1, pasos_c2)} ft")
+        m3.metric("Lateral Derecho", f"{pasos_der} ft")
+
+        if max_pasos <= limite_ft:
+            st.success(f"✅ ¡CARGUE EXITOSO! El pedido completo cabe en {max_pasos} ft.")
         else:
-            st.error(f"⚠️ EL CARGUE EXCEDE EL LARGO: {largo_maximo_final} ft ocupados.")
+            st.error(f"⚠️ EL CARGUE EXCEDE EL LARGO: {max_pasos} ft ocupados.")
