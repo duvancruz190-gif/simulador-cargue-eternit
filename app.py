@@ -3,9 +3,9 @@ import pandas as pd
 import re
 
 # -----------------------------
-# CONFIGURACIÓN Y LÍMITES REALES (SEGÚN TU TABLA)
+# CONFIGURACIÓN Y LÍMITES REALES
 # -----------------------------
-st.set_page_config(page_title="Simulador de Cargue", layout="wide")
+st.set_page_config(page_title="Simulador de Cargue Real", layout="wide")
 
 PRODUCTOS_BASE = {
     "4": {"peso": 11.82, "paquete": 130, "largo_ft": 4},
@@ -15,31 +15,24 @@ PRODUCTOS_BASE = {
     "10": {"peso": 29.54, "paquete": 100, "largo_ft": 10},
 }
 
-# Datos exactos de tu imagen
 VEHICULOS = [
-    {"tipo": "TURBO", "capacidad_max": 5000, "largo_planchon_ft": 16},
-    {"tipo": "SENCILLO", "capacidad_max": 10000, "largo_planchon_ft": 20},
-    {"tipo": "DOBLE TROQUE", "capacidad_max": 18000, "largo_planchon_ft": 24},
-    {"tipo": "CUATRO MANOS", "capacidad_max": 22000, "largo_planchon_ft": 28},
-    {"tipo": "MULA", "capacidad_max": 34000, "largo_planchon_ft": 40},
+    {"tipo": "TURBO", "capacidad_max": 5000, "largo_max": 16},
+    {"tipo": "SENCILLO", "capacidad_max": 10000, "largo_max": 20},
+    {"tipo": "DOBLE TROQUE", "capacidad_max": 18000, "largo_max": 24},
+    {"tipo": "CUATRO MANOS", "capacidad_max": 22000, "largo_max": 28},
+    {"tipo": "MULA", "capacidad_max": 34000, "largo_max": 40},
 ]
 
-# -----------------------------
-# ESTILOS VISUALES (RESURRECCIÓN DEL DISEÑO ORIGINAL)
-# -----------------------------
 st.markdown("""
 <style>
     .cabina { background:#1A3A5A; color:white; text-align:center; padding:15px; font-weight:bold; border-radius:8px 8px 0 0; }
-    .paquete-v { background:#27ae60; color:white; text-align:center; padding:12px; margin:4px; border-radius:5px; font-weight:bold; border:1px solid #1e8449; }
+    .paquete-v { background:#27ae60; color:white; text-align:center; padding:12px; margin:4px; border-radius:5px; font-weight:bold; border:1px solid #1e8449; min-height:80px; }
     .paquete-h { background:#2980b9; color:white; text-align:center; padding:15px; margin:10px auto; border-radius:6px; font-weight:bold; border:2px dashed #ecf0f1; width:85%; }
     .saldo-box { background:#f1c40f; color:#2c3e50; text-align:center; padding:8px; margin:4px; border-radius:5px; font-size:11px; font-weight:800; border:1px solid #d4ac0d; }
-    .error-logistica { color: #E30613; font-weight: bold; background: #ffe6e6; padding: 10px; border-radius: 5px; border: 1px solid #E30613; margin-bottom: 10px; }
+    .alerta-pasos { background:#ffcccc; color:#990000; padding:15px; border-radius:10px; border:2px solid #990000; text-align:center; font-weight:bold; font-size:20px; }
 </style>
 """, unsafe_allow_html=True)
 
-# -----------------------------
-# LÓGICA DE CARGUE
-# -----------------------------
 with st.sidebar:
     st.header("📋 Pedido")
     raw_data = st.text_area("Pegue el pedido aquí", height=250)
@@ -57,12 +50,12 @@ if raw_data:
             if numeros:
                 cant = int(numeros[-1])
                 info = PRODUCTOS_BASE[ref]
-                items.append({"ref": ref, "cant": cant, "largo": info["largo_ft"]})
+                items.append({"ref": ref, "cant": cant, "largo": info["largo_ft"], "peso_u": info["peso"]})
                 peso_total += cant * info["peso"]
 
     if items:
+        # Selección de vehículo por peso
         vh = next((v for v in VEHICULOS if v["capacidad_max"] >= peso_total), VEHICULOS[-1])
-        st.write(f"### Vehículo Sugerido: {vh['tipo']} (Largo: {vh['largo_planchon_ft']} ft)")
         
         # Clasificación
         verdes = []
@@ -72,57 +65,62 @@ if raw_data:
             for _ in range(it['cant'] // paq_std):
                 verdes.append({"label": f"FLEX. #{it['ref']}", "largo": it['largo'], "cant": paq_std})
             sobra = it['cant'] % paq_std
-            while sobra > 0:
-                c = min(sobra, 60)
-                amarillos.append({"label": f"FLEX. #{it['ref']}", "largo": it['largo'], "cant": c})
-                sobra -= c
+            if sobra > 0:
+                amarillos.append({"label": f"FLEX. #{it['ref']}", "largo": it['largo'], "cant": sobra})
 
-        # Estructura de filas (Verdes en el centro, amarillos a los lados)
+        # CÁLCULO CRÍTICO DE PASOS (PIES)
         atravesado = len(verdes) % 2 != 0
         v_pares = verdes[:-1] if atravesado else verdes
         v_final = verdes[-1] if atravesado else None
         
-        filas_verdes = [v_pares[i:i+2] for i in range(0, len(v_pares), 2)]
+        pasos_totales = 0
+        for i in range(0, len(v_pares), 2):
+            # Sumamos el largo del paquete más grande de la fila (normalmente son iguales)
+            pasos_totales += v_pares[i]['largo']
         
-        st.markdown('<div class="cabina">FRENTE DEL VEHÍCULO (CABINA)</div>', unsafe_allow_html=True)
-        
-        # DIBUJO DE FILAS
-        for fila in filas_verdes:
-            cols = st.columns([1, 1.5, 1.5, 1])
-            
-            # Saldo Izquierdo
-            with cols[0]:
-                if amarillos:
-                    s = amarillos.pop(0)
-                    if s['largo'] > fila[0]['largo']: # ALERTA DE SEGURIDAD
-                        st.markdown(f'<div class="error-logistica">⚠️ #{s["label"][-1]} es muy larga para base #{fila[0]["label"][-1]}</div>', unsafe_allow_html=True)
-                    st.markdown(f'<div class="saldo-box">SALDO<br>{s["label"]}<br>{s["cant"]} UND</div>', unsafe_allow_html=True)
-            
-            # Centro Verde
-            with cols[1]: st.markdown(f'<div class="paquete-v">{fila[0]["label"]}<br>({fila[0]["cant"]})</div>', unsafe_allow_html=True)
-            with cols[2]: 
-                if len(fila) > 1: st.markdown(f'<div class="paquete-v">{fila[1]["label"]}<br>({fila[1]["cant"]})</div>', unsafe_allow_html=True)
-            
-            # Saldo Derecho
-            with cols[3]:
-                if amarillos:
-                    s = amarillos.pop(0)
-                    if len(fila) > 1 and s['largo'] > fila[1]['largo']:
-                         st.markdown(f'<div class="error-logistica">⚠️ #{s["label"][-1]} es muy larga</div>', unsafe_allow_html=True)
-                    st.markdown(f'<div class="saldo-box">SALDO<br>{s["label"]}<br>{s["cant"]} UND</div>', unsafe_allow_html=True)
-
-        # PAQUETE AZUL (Siempre cierra la estructura verde)
         if v_final:
-            st.markdown(f'<div class="paquete-h">📦 PAQUETE ATRAVESADO (4 PASOS)<br>{v_final["label"]} ({v_final["cant"]} UND)</div>', unsafe_allow_html=True)
+            pasos_totales += 4  # El paquete azul atravesado SIEMPRE ocupa 4 pies de largo
 
-        # SALDOS SOBRANTES (Solo si no cupieron arriba)
-        if amarillos:
-            st.write("---")
-            st.caption("Saldos adicionales al final del planchón:")
-            cols_fin = st.columns(4)
-            for i, s in enumerate(amarillos):
-                with cols_fin[i % 4]:
-                    st.markdown(f'<div class="saldo-box">PISO<br>{s["label"]}<br>{s["cant"]} UND</div>', unsafe_allow_html=True)
+        # FRENO DE SEGURIDAD
+        if pasos_totales > vh['largo_max']:
+            st.markdown(f"""
+            <div class="alerta-pasos">
+                ❌ CARGA EXCEDIDA EN LONGITUD<br>
+                El planchón es de {vh['largo_max']} pies y este cargue requiere {pasos_totales} pies.<br>
+                ¡No se puede cargar! Reduzca la cantidad de paquetes verdes.
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.success(f"Cargue Validado: {pasos_totales} pies ocupados de {vh['largo_max']} disponibles.")
+            
+            # Dibujo de la estructura
+            st.markdown('<div class="cabina">FRENTE DEL VEHÍCULO (CABINA)</div>', unsafe_allow_html=True)
+            
+            filas_v = [v_pares[i:i+2] for i in range(0, len(v_pares), 2)]
+            for fila in filas_v:
+                cols = st.columns([1, 1.5, 1.5, 1])
+                with cols[0]:
+                    if amarillos:
+                        s = amarillos.pop(0)
+                        st.markdown(f'<div class="saldo-box">SALDO<br>{s["label"]}<br>{s["cant"]} UND</div>', unsafe_allow_html=True)
+                with cols[1]: st.markdown(f'<div class="paquete-v">{fila[0]["label"]}<br>({fila[0]["cant"]})</div>', unsafe_allow_html=True)
+                with cols[2]: 
+                    if len(fila) > 1: st.markdown(f'<div class="paquete-v">{fila[1]["label"]}<br>({fila[1]["cant"]})</div>', unsafe_allow_html=True)
+                with cols[3]:
+                    if amarillos:
+                        s = amarillos.pop(0)
+                        st.markdown(f'<div class="saldo-box">SALDO<br>{s["label"]}<br>{s["cant"]} UND</div>', unsafe_allow_html=True)
+
+            if v_final:
+                st.markdown(f'<div class="paquete-h">📦 PAQUETE ATRAVESADO (OCUPA 4 PIES)<br>{v_final["label"]} ({v_final["cant"]} UND)</div>', unsafe_allow_html=True)
+            
+            # Saldos que sobraron se ponen al final
+            if amarillos:
+                st.write("Saldos al final del planchón:")
+                c_fin = st.columns(4)
+                for i, s in enumerate(amarillos):
+                    with c_fin[i%4]:
+                        st.markdown(f'<div class="saldo-box">PISO<br>{s["label"]}<br>{s["cant"]} UND</div>', unsafe_allow_html=True)
 
 else:
-    st.info("Pegue un pedido para generar el plano de carga.")
+    st.info("Pegue un pedido para verificar si cabe en la mula.")
