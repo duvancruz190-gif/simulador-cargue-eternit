@@ -113,7 +113,6 @@ if not st.session_state.autenticado:
 
 else:
 
-    # HEADER
     st.markdown("""
     <div style="
     background:#E30613;
@@ -129,7 +128,7 @@ else:
     </div>
     """, unsafe_allow_html=True)
 
-    # ESTILOS
+# ESTILOS
 
     st.markdown("""
     <style>
@@ -138,45 +137,69 @@ else:
     background:#1A3A5A;
     color:white;
     text-align:center;
-    padding:15px;
+    padding:10px;
     font-weight:bold;
-    border-radius:8px 8px 0 0;
-    border-bottom:5px solid #bdc3c7;
+    border-radius:8px;
+    width:120px;
+    margin-bottom:10px;
     }
 
-    .paquete-v{
-    background:#27ae60;
-    color:white;
-    text-align:center;
-    padding:12px;
-    margin:4px;
-    border-radius:5px;
-    font-weight:bold;
-    border:1px solid #1e8449;
-    }
-
-    .paquete-h{
-    background:#2980b9;
-    color:white;
-    text-align:center;
-    padding:15px;
-    margin:10px auto;
+    .teja-eternit{
+    background:#c0392b;
+    width:90px;
+    height:50px;
+    margin:6px auto;
     border-radius:6px;
+    position:relative;
+    color:white;
+    font-size:11px;
     font-weight:bold;
-    border:2px dashed #ecf0f1;
-    width:80%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    box-shadow:2px 3px 5px rgba(0,0,0,0.3);
+    }
+
+    .teja-eternit::before{
+    content:"";
+    position:absolute;
+    top:0;
+    left:0;
+    right:0;
+    height:8px;
+    background: repeating-linear-gradient(
+    90deg,
+    #922b21 0px,
+    #922b21 6px,
+    #c0392b 6px,
+    #c0392b 12px
+    );
+    border-radius:6px 6px 0 0;
+    }
+
+    .teja-horizontal{
+    background:#1f618d;
+    height:45px;
+    width:70%;
+    margin:15px auto;
+    border-radius:8px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:white;
+    font-weight:bold;
+    box-shadow:2px 2px 6px rgba(0,0,0,0.4);
     }
 
     .saldo-box{
     background:#f1c40f;
     color:#2c3e50;
     text-align:center;
-    padding:8px;
+    padding:6px;
     margin:4px;
     border-radius:5px;
-    font-size:11px;
+    font-size:10px;
     font-weight:800;
-    border:1px solid #d4ac0d;
     }
 
     </style>
@@ -248,22 +271,31 @@ else:
 
         vh = next((v for v in VEHICULOS if v["capacidad_max"] >= peso_total_pedido), VEHICULOS[-1])
 
+        peso_ton = peso_total_pedido / 1000
+        ocupacion = (peso_total_pedido / vh["capacidad_max"]) * 100
+
         st.subheader(f"🚛 Vehículo sugerido: {vh['tipo']}")
 
-        c1, c2, c3 = st.columns(3)
+        c1, c2, c3, c4 = st.columns(4)
 
-        c1.metric("Peso Total", f"{peso_total_pedido:,.2f} kg")
-        c2.metric("Capacidad Vehículo", f"{vh['capacidad_max']:,.0f} kg")
+        c1.metric("Peso Total", f"{peso_total_pedido:,.0f} kg")
+        c2.metric("Toneladas", f"{peso_ton:.2f} ton")
+        c3.metric("Capacidad Vehículo", f"{vh['capacidad_max']:,.0f} kg")
+        c4.metric("Uso del camión", f"{ocupacion:.1f}%")
 
         largo_req = max([PRODUCTOS_BASE[i['ref']]['largo_ft'] for i in pedido_items])
-        c3.metric("Largo requerido", f"{largo_req} ft")
+
+        if largo_req > vh["largo_planchon_ft"]:
+            st.error("⚠️ La teja supera el largo del planchón")
+        else:
+            st.success("✔ Largo compatible con el vehículo")
 
         st.divider()
 
-        st.markdown('<div class="cabina">FRENTE DEL VEHÍCULO (CABINA)</div>', unsafe_allow_html=True)
+        st.markdown('<div class="cabina">CABINA 🚛</div>', unsafe_allow_html=True)
 
 # ==========================================================
-# LÓGICA DISTRIBUCIÓN
+# DISTRIBUCIÓN
 # ==========================================================
 
         pedido_sorted = sorted(pedido_items,
@@ -288,6 +320,9 @@ else:
                 saldos.append({"label": item["tipo"], "cant": cant_s})
                 sobra -= cant_s
 
+        total_paquetes = len(mapa_vertical)
+        st.metric("Total paquetes", total_paquetes)
+
         paq_render = list(mapa_vertical)
 
         atravesado = paq_render.pop() if len(paq_render) % 2 != 0 else None
@@ -304,26 +339,26 @@ else:
 
                 if saldos_render:
                     s = saldos_render.pop(0)
-                    st.markdown(f'<div class="saldo-box">{s["label"]}<br>{s["cant"]} UND</div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="saldo-box">{s["label"]}<br>{s["cant"]}</div>', unsafe_allow_html=True)
 
             with cols[1]:
-                st.markdown(f'<div class="paquete-v">{row[0]["label"]}<br>({row[0]["cant"]})</div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="teja-eternit">{row[0]["label"]}<br>{row[0]["cant"]}</div>', unsafe_allow_html=True)
 
             with cols[2]:
 
                 if len(row) > 1:
-                    st.markdown(f'<div class="paquete-v">{row[1]["label"]}<br>({row[1]["cant"]})</div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="teja-eternit">{row[1]["label"]}<br>{row[1]["cant"]}</div>', unsafe_allow_html=True)
 
             with cols[3]:
 
                 if saldos_render:
                     s = saldos_render.pop(0)
-                    st.markdown(f'<div class="saldo-box">{s["label"]}<br>{s["cant"]} UND</div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="saldo-box">{s["label"]}<br>{s["cant"]}</div>', unsafe_allow_html=True)
 
         if atravesado:
 
             st.markdown(
-            f'<div class="paquete-h">📦 PAQUETE COMPLETO TRASERO<br>{atravesado["label"]} ({atravesado["cant"]} UND)</div>',
+            f'<div class="teja-horizontal">PAQUETE TRASERO<br>{atravesado["label"]} ({atravesado["cant"]})</div>',
             unsafe_allow_html=True
             )
 
