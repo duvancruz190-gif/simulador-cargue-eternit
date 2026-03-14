@@ -18,7 +18,6 @@ PRODUCTOS_BASE = {
     "10": {"peso": 29.54, "paquete": 100, "largo_ft": 10},
 }
 
-# Límites técnicos
 VEHICULOS = [
     {"tipo": "TURBO", "capacidad_max": 5000, "largo_planchon_ft": 16},
     {"tipo": "SENCILLO", "capacidad_max": 10000, "largo_planchon_ft": 20},
@@ -31,7 +30,7 @@ if "autenticado" not in st.session_state:
     st.session_state.autenticado = False
 
 # ==========================================================
-# 1. BLOQUE DE INGRESO (LOGIN) - NO TOCAR
+# 1. BLOQUE DE INGRESO (LOGIN) - RESTAURADO
 # ==========================================================
 if not st.session_state.autenticado:
     col1, col2, col3 = st.columns([1, 1.4, 1])
@@ -52,14 +51,15 @@ if not st.session_state.autenticado:
                     st.error("Credenciales incorrectas")
 
 # ==========================================================
-# 2. PANEL DE CARGUE (INTERFAZ ORIGINAL)
+# 2. PANEL DE CARGUE (INTERFAZ ORIGINAL BLINDADA)
 # ==========================================================
 else:
     # Estilos visuales exactos a tus imágenes
     st.markdown("""
     <style>
-    .metric-text { font-size: 42px; font-weight: 400; color: #333; }
-    .cabina { background:#1A3A5A; color:white; text-align:center; padding:15px; font-weight:bold; border-radius:8px; margin: 15px 0; }
+    .metric-text { font-size: 48px; font-weight: 400; color: #333; margin-bottom: 0px; }
+    .metric-sub { font-size: 24px; color: #666; margin-top: -10px; }
+    .cabina { background:#1A3A5A; color:white; text-align:center; padding:15px; font-weight:bold; border-radius:8px; margin: 20px 0; }
     .paquete-v { background:#1b5e20; color:white; text-align:center; padding:12px; margin:4px; border-radius:5px; font-weight:bold; border:1px solid #0d3b11; font-size:14px; }
     .saldo-box { background:#b7950b; color:white; text-align:center; padding:10px; margin:4px; border-radius:5px; font-weight:bold; border:1px solid #7d6608; font-size:12px; }
     </style>
@@ -92,7 +92,7 @@ else:
                         peso_total_pedido += cant * info["peso"]
 
     if pedido_items:
-        # --- CABECERA DE MÉTRICAS (MULA / PESO / PASOS) ---
+        # --- MÉTRICAS SUPERIORES ORIGINALES ---
         vh = next((v for v in VEHICULOS if v["capacidad_max"] >= peso_total_pedido), VEHICULOS[-1])
         
         m1, m2, m3 = st.columns([1, 1, 1])
@@ -102,7 +102,7 @@ else:
         
         st.divider()
 
-        # --- LÓGICA DE ACOMODACIÓN POR PASOS ---
+        # --- LÓGICA DE CARGUE INDEPENDIENTE ---
         inventario = []
         for item in sorted(pedido_items, key=lambda x: x['ref_num'], reverse=True):
             paq_max = PRODUCTOS_BASE[str(item['ref_num'])]['paquete']
@@ -117,7 +117,6 @@ else:
         limite = vh['largo_planchon_ft']
         no_cupo = False
 
-        # Llenado independiente: si hay un hueco a un lado, lo aprovecha
         for p in inventario:
             if largo_izq <= largo_der:
                 if largo_izq + p['largo'] <= limite:
@@ -132,11 +131,10 @@ else:
                     col_izq.append(p); largo_izq += p['largo']
                 else: no_cupo = True
 
-        # --- REPRESENTACIÓN VISUAL ---
+        # --- DIBUJO DEL VEHÍCULO ---
         st.markdown('<div class="cabina">FRENTE DEL VEHÍCULO (CABINA)</div>', unsafe_allow_html=True)
         
-        num_filas = max(len(col_izq), len(col_der))
-        for i in range(num_filas):
+        for i in range(max(len(col_izq), len(col_der))):
             c = st.columns([1, 2, 2, 1])
             with c[1]:
                 if i < len(col_izq):
@@ -149,7 +147,7 @@ else:
                     clase = "paquete-v" if b["es_paq"] else "saldo-box"
                     st.markdown(f'<div class="{clase}">{b["label"]} ({b["cant"]} UND)</div>', unsafe_allow_html=True)
 
-        # --- ALERTAS FINALES ---
+        # --- ALARMAS ORIGINALES ---
         if peso_total_pedido > 34000:
             st.error(f"⚠️ ALARMA: SE EXCEDE CAPACIDAD POR {peso_total_pedido - 34000:,.2f} KG")
         
