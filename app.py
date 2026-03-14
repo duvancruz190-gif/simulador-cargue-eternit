@@ -5,7 +5,7 @@ import re
 # -----------------------------
 # CONFIGURACIÓN GENERAL
 # -----------------------------
-st.set_page_config(page_title="Simulador de Cargue", page_icon="🚛", layout="wide")
+st.set_page_config(page_title="Simulador de Cargue Eternit", page_icon="🚛", layout="wide")
 
 USUARIO_CORRECTO = "DUVANCRUZ190@GMAIL.COM"
 CLAVE_CORRECTA = "Du854872*"
@@ -18,6 +18,7 @@ PRODUCTOS_BASE = {
     "10": {"peso": 29.54, "paquete": 100, "largo_ft": 10},
 }
 
+# Límites de peso actualizados según tu tabla
 VEHICULOS = [
     {"tipo": "TURBO", "capacidad_max": 5000, "largo_planchon_ft": 16},
     {"tipo": "SENCILLO", "capacidad_max": 10000, "largo_planchon_ft": 20},
@@ -31,35 +32,32 @@ if "autenticado" not in st.session_state:
 
 # --- LOGIN ---
 if not st.session_state.autenticado:
-    st.markdown("<style>div.stButton > button { background-color:#E30613; color:white; font-weight:bold; }</style>", unsafe_allow_html=True)
     col1, col2, col3 = st.columns([1,1.4,1])
     with col2:
-        try: st.image("logo-eternit-400x150-1.png", use_container_width=True)
-        except: st.warning("Logo no encontrado")
         with st.container(border=True):
-            usuario = st.text_input("Correo electrónico").upper()
+            st.title("Acceso")
+            usuario = st.text_input("Usuario").upper()
             clave = st.text_input("Contraseña", type="password")
-            if st.button("Ingresar al Sistema", use_container_width=True):
+            if st.button("INGRESAR", use_container_width=True):
                 if usuario == USUARIO_CORRECTO and clave == CLAVE_CORRECTA:
                     st.session_state.autenticado = True
                     st.rerun()
-                else: st.error("Credenciales incorrectas")
+                else: st.error("Acceso denegado")
 else:
-    # --- INTERFAZ PRINCIPAL ---
-    st.markdown('<div style="background:#E30613; padding:12px; border-radius:8px; text-align:center; color:white; font-weight:bold; font-size:22px; margin-bottom:20px;">🚛 SIMULADOR DE CARGUE - LOGÍSTICA</div>', unsafe_allow_html=True)
+    # --- INTERFAZ DE CARGUE ---
+    st.markdown('<div style="background:#E30613; padding:12px; border-radius:8px; text-align:center; color:white; font-weight:bold; font-size:22px; margin-bottom:20px;">🚛 SIMULADOR DE CARGUE - EQUILIBRIO DE PESOS</div>', unsafe_allow_html=True)
 
     st.markdown("""
     <style>
-    .cabina { background:#1A3A5A; color:white; text-align:center; padding:15px; font-weight:bold; border-radius:8px 8px 0 0; }
-    .paquete-v { background:#1b5e20; color:white; text-align:center; padding:12px; margin:4px; border-radius:5px; font-weight:bold; border:1px solid #0d3b11; }
-    .paquete-h { background:#1b4f72; color:white; text-align:center; padding:15px; margin:10px auto; border-radius:6px; font-weight:bold; border:2px dashed #ecf0f1; width:80%; }
-    .saldo-box { background:#b7950b; color:white; text-align:center; padding:8px; margin:4px; border-radius:5px; font-size:11px; font-weight:800; border:1px solid #7d6608; }
+    .cabina { background:#1A3A5A; color:white; text-align:center; padding:15px; font-weight:bold; border-radius:8px; margin-bottom:10px; }
+    .paquete-v { background:#1b5e20; color:white; text-align:center; padding:10px; margin:2px; border-radius:4px; font-weight:bold; border:1px solid #0d3b11; }
+    .saldo-box { background:#b7950b; color:white; text-align:center; padding:10px; margin:2px; border-radius:4px; font-weight:bold; border:1px solid #7d6608; }
     </style>
     """, unsafe_allow_html=True)
 
     with st.sidebar:
         st.header("📋 Pedido")
-        raw_data = st.text_area("Pegue el pedido aquí", height=300)
+        raw_data = st.text_area("Pegue el pedido aquí", height=250)
         if st.button("Limpiar"): st.rerun()
 
     pedido_items = []
@@ -71,94 +69,80 @@ else:
             line_upper = line.upper().strip()
             match_ref = re.search(r'#(\d+)', line_upper)
             if match_ref:
-                num_ref = match_ref.group(1)
-                if num_ref in PRODUCTOS_BASE:
-                    numeros = re.findall(r'\d+', line_upper.replace(f"#{num_ref}", ""))
-                    if numeros:
-                        cant = int(numeros[-1])
-                        info = PRODUCTOS_BASE[num_ref]
-                        pedido_items.append({
-                            "tipo": f"TEJA #{num_ref}", "cant": cant, "peso": cant * info["peso"], 
-                            "ref_num": int(num_ref), "largo_ft": info["largo_ft"]
-                        })
+                ref = match_ref.group(1)
+                if ref in PRODUCTOS_BASE:
+                    nums = re.findall(r'\d+', line_upper.replace(f"#{ref}", ""))
+                    if nums:
+                        cant = int(nums[-1])
+                        info = PRODUCTOS_BASE[ref]
+                        pedido_items.append({"tipo": f"TEJA #{ref}", "cant": cant, "peso": cant * info["peso"], "ref_num": int(ref), "largo": info["largo_ft"]})
                         peso_total_pedido += cant * info["peso"]
 
     if pedido_items:
-        # 1. Alarma de Peso
-        vh_max_cap = VEHICULOS[-1]['capacidad_max']
-        if peso_total_pedido > vh_max_cap:
-            exceso = peso_total_pedido - vh_max_cap
-            st.error(f"❌ EL PEDIDO EXCEDE LA CAPACIDAD MÁXIMA DEL VEHÍCULO POR {exceso:,.2f} KG")
-        
+        # Selección de vehículo y Alarmas de Peso
         vh = next((v for v in VEHICULOS if v["capacidad_max"] >= peso_total_pedido), VEHICULOS[-1])
         
-        c1, c2, c3 = st.columns(3)
-        c1.metric("Peso Total", f"{peso_total_pedido:,.2f} kg")
-        c2.metric("Vehículo Sugerido", vh['tipo'])
-        c3.metric("Capacidad Máxima", f"{vh['capacidad_max']:,.0f} kg")
+        if peso_total_pedido > 34000:
+            st.error(f"❌ ALERTA: Peso excedido ({peso_total_pedido:,.0f} kg). Máximo permitido 34,000 kg.")
+        
+        st.subheader(f"Vehículo: {vh['tipo']} | Largo: {vh['largo_planchon_ft']} ft")
 
-        # --- LÓGICA DE DISTRIBUCIÓN ---
-        pedido_sorted = sorted(pedido_items, key=lambda x: x['ref_num'], reverse=True)
-        paquetes_verdes = []
-        saldos_naranja = []
-
-        for item in pedido_sorted:
+        # --- DISTRIBUCIÓN SIMÉTRICA ---
+        inventario = []
+        # Ordenamos de mayor a menor para que la base sea estable
+        for item in sorted(pedido_items, key=lambda x: x['ref_num'], reverse=True):
             paq_max = PRODUCTOS_BASE[str(item['ref_num'])]['paquete']
-            completos = item["cant"] // paq_max
+            for _ in range(item["cant"] // paq_max):
+                inventario.append({"label": item["tipo"], "cant": paq_max, "largo": item["largo"], "es_paq": True})
             sobra = item["cant"] % paq_max
-            for _ in range(completos):
-                paquetes_verdes.append({"label": item["tipo"], "cant": paq_max, "ref": item["ref_num"], "largo": item["largo_ft"]})
-            
-            # Consolidación de saldos (Máximo 60)
-            while sobra > 0:
-                unidades = min(sobra, 60)
-                saldos_naranja.append({"label": item["tipo"], "cant": unidades, "ref": item["ref_num"], "largo": item["largo_ft"]})
-                sobra -= unidades
+            if sobra > 0:
+                # Si el saldo es grande, lo partimos para equilibrar peso a los lados
+                if sobra > 40:
+                    inventario.append({"label": item["tipo"], "cant": sobra//2, "largo": item["largo"], "es_paq": False})
+                    inventario.append({"label": item["tipo"], "cant": sobra - (sobra//2), "largo": item["largo"], "es_paq": False})
+                else:
+                    inventario.append({"label": item["tipo"], "cant": sobra, "largo": item["largo"], "es_paq": False})
 
-        paq_render = list(paquetes_verdes)
-        atravesado = paq_render.pop() if len(paq_render) % 2 != 0 else None
-        rows = [paq_render[i:i+2] for i in range(0, len(paq_render), 2)]
-        saldos_render = list(saldos_naranja)
+        col_izq, col_der = [], []
+        largo_izq, largo_der = 0, 0
+        limite = vh['largo_planchon_ft']
+        fueron_al_planchon = []
 
-        st.divider()
-        st.markdown('<div class="cabina">FRENTE DEL VEHÍCULO (CABINA)</div>', unsafe_allow_html=True)
+        # Llenado por parejas primero para forzar equilibrio de peso
+        i = 0
+        while i < len(inventario):
+            p1 = inventario[i]
+            # Si hay un par igual, los mandamos uno a cada lado
+            if i + 1 < len(inventario) and inventario[i+1]['label'] == p1['label']:
+                p2 = inventario[i+1]
+                if largo_izq + p1['largo'] <= limite and largo_der + p2['largo'] <= limite:
+                    col_izq.append(p1); largo_izq += p1['largo']
+                    col_der.append(p2); largo_der += p2['largo']
+                i += 2
+            else:
+                # Si está solo, lo mandamos al lado con más espacio
+                if largo_izq <= largo_der:
+                    if largo_izq + p1['largo'] <= limite:
+                        col_izq.append(p1); largo_izq += p1['largo']
+                    else: fueron_al_planchon.append(p1)
+                else:
+                    if largo_der + p1['largo'] <= limite:
+                        col_der.append(p1); largo_der += p1['largo']
+                    else: fueron_al_planchon.append(p1)
+                i += 1
 
-        largo_ocupado = 0
-        limite_ft = vh['largo_planchon_ft']
-        todo_cargado = True
+        # DIBUJO
+        st.markdown('<div class="cabina">CABINA DEL VEHÍCULO</div>', unsafe_allow_html=True)
+        for row_idx in range(max(len(col_izq), len(col_der))):
+            c = st.columns([1, 2, 2, 1])
+            with c[1]:
+                if row_idx < len(col_izq):
+                    b = col_izq[row_idx]
+                    st.markdown(f'<div class="{"paquete-v" if b["es_paq"] else "saldo-box"}">{b["label"]}<br>({b["cant"]} UND)</div>', unsafe_allow_html=True)
+            with c[2]:
+                if row_idx < len(col_der):
+                    b = col_der[row_idx]
+                    st.markdown(f'<div class="{"paquete-v" if b["es_paq"] else "saldo-box"}">{b["label"]}<br>({b["cant"]} UND)</div>', unsafe_allow_html=True)
 
-        for row in rows:
-            avance = max([p['largo'] for p in row])
-            if largo_ocupado + avance <= limite_ft:
-                cols = st.columns([1, 1.5, 1.5, 1])
-                with cols[0]:
-                    if saldos_render:
-                        s = saldos_render.pop(0)
-                        st.markdown(f'<div class="saldo-box">{s["label"]}<br>{s["cant"]} UND</div>', unsafe_allow_html=True)
-                with cols[1]: st.markdown(f'<div class="paquete-v">{row[0]["label"]}<br>({row[0]["cant"]})</div>', unsafe_allow_html=True)
-                with cols[2]: st.markdown(f'<div class="paquete-v">{row[1]["label"]}<br>({row[1]["cant"]})</div>', unsafe_allow_html=True)
-                with cols[3]:
-                    if saldos_render:
-                        s = saldos_render.pop(0)
-                        st.markdown(f'<div class="saldo-box">{s["label"]}<br>{s["cant"]} UND</div>', unsafe_allow_html=True)
-                largo_ocupado += avance
-            else: todo_cargado = False
-
-        if atravesado:
-            if largo_ocupado + atravesado['largo'] <= limite_ft:
-                cols_f = st.columns([1, 3, 1])
-                with cols_f[0]:
-                    if saldos_render and saldos_render[0]['ref'] <= atravesado['ref']:
-                        s = saldos_render.pop(0)
-                        st.markdown(f'<div class="saldo-box">{s["label"]}<br>{s["cant"]} UND</div>', unsafe_allow_html=True)
-                with cols_f[1]: st.markdown(f'<div class="paquete-h">📦 PAQUETE TRASERO<br>{atravesado["label"]} ({atravesado["cant"]} UND)</div>', unsafe_allow_html=True)
-                with cols_f[2]:
-                    if saldos_render and saldos_render[0]['ref'] <= atravesado['ref']:
-                        s = saldos_render.pop(0)
-                        st.markdown(f'<div class="saldo-box">{s["label"]}<br>{s["cant"]} UND</div>', unsafe_allow_html=True)
-                largo_ocupado += atravesado['largo']
-            else: todo_cargado = False
-
-        # 2. Alarma de Espacio
-        if not todo_cargado or saldos_render:
-            st.error("⚠️ NO CABE TODO EL PEDIDO EN EL VEHÍCULO POR DIMENSIONES FÍSICAS.")
+        if fueron_al_planchon or (largo_izq > limite or largo_der > limite):
+            st.error("⚠️ ALARMA: NO CABE TODO EL PEDIDO EN EL PLANCHÓN.")
