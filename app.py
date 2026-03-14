@@ -28,7 +28,7 @@ PRODUCTOS_BASE = {
 }
 
 # -----------------------------
-# VEHÍCULOS (Dimensiones Reales)
+# VEHÍCULOS
 # -----------------------------
 
 VEHICULOS = [
@@ -73,6 +73,9 @@ if not st.session_state.autenticado:
     col1, col2, col3 = st.columns([1,1.4,1])
 
     with col2:
+        # Nota: Asegúrate de tener el logo o comentar esta línea si falla localmente
+        # st.image("logo-eternit-400x150-1.png", use_container_width=True)
+
         st.markdown(
         """
         <h1 style='text-align:center;
@@ -141,6 +144,17 @@ else:
     font-weight:bold;
     border:1px solid #1e8449;
     }
+    .paquete-h{
+    background:#2980b9;
+    color:white;
+    text-align:center;
+    padding:15px;
+    margin:10px auto;
+    border-radius:6px;
+    font-weight:bold;
+    border:2px dashed #ecf0f1;
+    width:80%;
+    }
     .saldo-box{
     background:#f1c40f;
     color:#2c3e50;
@@ -198,98 +212,97 @@ else:
                         peso_total_pedido += cant * info["peso"]
 
 # ==========================================================
-# LÓGICA DE DISTRIBUCIÓN ESTRICTA
+# RESULTADOS CON LÓGICA DE LÍMITE
 # ==========================================================
 
     if pedido_items:
-        # Selección inicial del vehículo (por peso y largo máximo del material)
-        largo_req_max = max([PRODUCTOS_BASE[i['ref']]['largo_ft'] for i in pedido_items])
-        vh = next((v for v in VEHICULOS if v["capacidad_max"] >= peso_total_pedido and v["largo_planchon_ft"] >= largo_req_max), VEHICULOS[-1])
+        # Selección de vehículo
+        largo_max_teja = max([PRODUCTOS_BASE[i['ref']]['largo_ft'] for i in pedido_items])
+        vh = next((v for v in VEHICULOS if v["capacidad_max"] >= peso_total_pedido), VEHICULOS[-1])
 
         st.subheader(f"🚛 Vehículo sugerido: {vh['tipo']}")
-        
         c1, c2, c3 = st.columns(3)
         c1.metric("Peso Total", f"{peso_total_pedido:,.2f} kg")
-        c2.metric("Capacidad Máx", f"{vh['capacidad_max']:,.0f} kg")
-        c3.metric("Planchón Vehículo", f"{vh['largo_planchon_ft']} ft")
-
-        # --- Algoritmo de acomodación ---
-        espacio_disponible = vh["largo_planchon_ft"]
-        paquetes_planchon = []
-        saldos_segundo_nivel = []
-        no_cabe_material = False
-
-        # Ordenar de mayor a menor largo
-        pedido_sorted = sorted(pedido_items, key=lambda x: int(x['ref']), reverse=True)
-
-        for item in pedido_sorted:
-            largo_ft = PRODUCTOS_BASE[item['ref']]['largo_ft']
-            paq_max = PRODUCTOS_BASE[item['ref']]['paquete']
-            
-            cant_actual = item["cant"]
-            
-            # Ubicar paquetes completos en planchón
-            while cant_actual >= paq_max:
-                if espacio_disponible >= largo_ft:
-                    paquetes_planchon.append({"label": item["tipo"], "cant": paq_max, "ref": item["ref"]})
-                    # Restamos del largo cada 2 paquetes (izquierda y derecha)
-                    if len(paquetes_planchon) % 2 == 0:
-                        espacio_disponible -= largo_ft
-                    cant_actual -= paq_max
-                else:
-                    no_cabe_material = True
-                    break
-            
-            # Si quedó un paquete solo al final de la tanda, resta su largo
-            if len(paquetes_planchon) % 2 != 0 and cant_actual < paq_max:
-                pass # El ajuste de resta se hace al final o al cambiar de referencia
-
-            # Ubicar saldos en segundo nivel (max 60 por estiba)
-            while cant_actual > 0:
-                unidades = min(cant_actual, 60)
-                saldos_segundo_nivel.append({"label": item["tipo"], "cant": unidades})
-                cant_actual -= unidades
-
-        # Ajuste final de espacio si el último paquete quedó sin pareja
-        # (Ocupa el largo aunque esté solo a un lado)
-        total_longitud_ocupada = 0
-        temp_list = paquetes_planchon.copy()
-        while temp_list:
-            p1 = temp_list.pop(0)
-            total_longitud_ocupada += PRODUCTOS_BASE[p1['ref']]['largo_ft']
-            if temp_list: # Si hay pareja
-                temp_list.pop(0) 
-        
-        espacio_restante_final = vh["largo_planchon_ft"] - total_longitud_ocupada
+        c2.metric("Capacidad Vehículo", f"{vh['capacidad_max']:,.0f} kg")
+        c3.metric("Largo Planchón", f"{vh['largo_planchon_ft']} ft")
 
         st.divider()
 
-        if no_cabe_material or espacio_restante_final < 0:
-            st.error(f"❌ EL MATERIAL NO CABE: Se ha agotado el largo del planchón ({vh['largo_planchon_ft']}ft).")
+        # --- LÓGICA DE DISTRIBUCIÓN ESTRICTA ---
+        pedido_sorted = sorted(pedido_items, key=lambda x: PRODUCTOS_BASE[x['ref']]['largo_ft'], reverse=True)
+
+        mapa_vertical = []
+        saldos = []
+        espacio_ocupado_pies = 0
+
+        for item in pedido_sorted:
+            paq = PRODUCTOS_BASE[item['ref']]['paquete']
+            largo_teja = PRODUCTOS_BASE[item['ref']]['largo_ft']
+            
+            completos = item["cant"] // paq
+            sobra = item["cant"] % paq
+
+            # Empaquetar completos
+            for _ in range(completos):
+                mapa_vertical.append({"label": item["tipo"], "cant": paq, "largo": largo_teja})
+            
+            # Empaquetar saldos (Máximo 60 por saldo)
+            while sobra > 0:
+                cant_s = min(sobra, 60)
+                saldos.append({"label": item["tipo"], "cant": cant_s})
+                sobra -= cant_s
+
+        # Cálculo de longitud total en el planchón
+        # Dividimos paquetes por 2 porque van en parejas (izq/der)
+        num_filas = (len(mapa_vertical) + 1) // 2 
+        # (Para ser exactos, calculamos el largo sumando las referencias por fila)
+        largo_total_necesario = 0
+        for i in range(0, len(mapa_vertical), 2):
+            largo_total_necesario += mapa_vertical[i]["largo"]
+
+        # VALIDACIÓN FINAL DE LÍMITE
+        if largo_total_necesario > vh["largo_planchon_ft"]:
+            st.error(f"❌ ¡EL MATERIAL NO CABE! Se requieren {largo_total_necesario}ft y el planchón es de {vh['largo_planchon_ft']}ft.")
         else:
             st.markdown('<div class="cabina">FRENTE DEL VEHÍCULO (CABINA)</div>', unsafe_allow_html=True)
 
-            # Renderizar Piso 1 (Planchón)
-            filas_p1 = [paquetes_planchon[i:i+2] for i in range(0, len(paquetes_planchon), 2)]
-            for fila in filas_p1:
+            paq_render = list(mapa_vertical)
+            atravesado = paq_render.pop() if len(paq_render) % 2 != 0 else None
+            rows = [paq_render[i:i+2] for i in range(0, len(paq_render), 2)]
+            saldos_render = list(saldos)
+
+            for row in rows:
                 cols = st.columns([1,1.5,1.5,1])
+                with cols[0]:
+                    if saldos_render:
+                        s = saldos_render.pop(0)
+                        st.markdown(f'<div class="saldo-box">{s["label"]}<br>{s["cant"]} UND</div>', unsafe_allow_html=True)
                 with cols[1]:
-                    st.markdown(f'<div class="paquete-v">{fila[0]["label"]}<br>({fila[0]["cant"]})</div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="paquete-v">{row[0]["label"]}<br>({row[0]["cant"]})</div>', unsafe_allow_html=True)
                 with cols[2]:
-                    if len(fila) > 1:
-                        st.markdown(f'<div class="paquete-v">{fila[1]["label"]}<br>({fila[1]["cant"]})</div>', unsafe_allow_html=True)
+                    if len(row) > 1:
+                        st.markdown(f'<div class="paquete-v">{row[1]["label"]}<br>({row[1]["cant"]})</div>', unsafe_allow_html=True)
+                with cols[3]:
+                    if saldos_render:
+                        s = saldos_render.pop(0)
+                        st.markdown(f'<div class="saldo-box">{s["label"]}<br>{s["cant"]} UND</div>', unsafe_allow_html=True)
 
-            # Renderizar Segundo Nivel (Saldos)
-            if saldos_segundo_nivel:
-                st.markdown("### 📦 Segundo Nivel (Saldos sobre estibas - Máx 60 und)")
-                filas_s = [saldos_segundo_nivel[i:i+4] for i in range(0, len(saldos_segundo_nivel), 4)]
-                for fs in filas_s:
-                    cols_s = st.columns(4)
-                    for i, s in enumerate(fs):
-                        with cols_s[i]:
-                            st.markdown(f'<div class="saldo-box">{s["label"]}<br>{s["cant"]} UND</div>', unsafe_allow_html=True)
-
-            st.info(f"Espacio restante en planchón: {espacio_restante_final} pies.")
+            if atravesado:
+                st.markdown(
+                f'<div class="paquete-h">📦 PAQUETE COMPLETO TRASERO<br>{atravesado["label"]} ({atravesado["cant"]} UND)</div>',
+                unsafe_allow_html=True
+                )
+            
+            # Mostrar saldos restantes si quedaron
+            while saldos_render:
+                c1, c2, c3, c4 = st.columns(4)
+                with c1:
+                    s = saldos_render.pop(0)
+                    st.markdown(f'<div class="saldo-box">{s["label"]}<br>{s["cant"]} UND</div>', unsafe_allow_html=True)
+                if saldos_render:
+                    with c4:
+                        s = saldos_render.pop(0)
+                        st.markdown(f'<div class="saldo-box">{s["label"]}<br>{s["cant"]} UND</div>', unsafe_allow_html=True)
 
     else:
         st.info("Pegue un pedido en el panel izquierdo para generar la simulación.")
