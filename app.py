@@ -231,54 +231,85 @@ else:
         st.markdown('<div class="cabina">FRENTE DEL VEHÍCULO (CABINA)</div>', unsafe_allow_html=True)
 
 # ==========================================================
-# LÓGICA DISTRIBUCIÓN
+# LÓGICA DISTRIBUCIÓN (ACTUALIZADA)
 # ==========================================================
+
+    # 1. VALIDACIÓN DE EXCESO DE CAPACIDAD
+    peso_maximo_soportado = VEHICULOS[-1]["capacidad_max"]
+    
+    if peso_total_pedido > peso_maximo_soportado:
+        st.error(f"❌ EL PEDIDO EXCEDE LA CAPACIDAD MÁXIMA DEL VEHÍCULO ({peso_maximo_soportado:,.0f} kg).")
+        st.stop()
+
+    if pedido_items:
+        vh = next((v for v in VEHICULOS if v["capacidad_max"] >= peso_total_pedido), VEHICULOS[-1])
+        
+        # ... (Mantener las métricas de peso y largo igual) ...
 
         pedido_sorted = sorted(pedido_items,
                                key=lambda x: PRODUCTOS_BASE[x['ref']]['largo_ft'],
                                reverse=True)
 
         mapa_vertical = []
-        saldos = []
+        saldos_lista = []
 
         for item in pedido_sorted:
-            paq = PRODUCTOS_BASE[item['ref']]['paquete']
-            completos = item["cant"] // paq
-            sobra = item["cant"] % paq
+            paq_size = PRODUCTOS_BASE[item['ref']]['paquete']
+            completos = item["cant"] // paq_size
+            sobra = item["cant"] % paq_size
 
+            # Agregar paquetes completos
             for _ in range(completos):
-                mapa_vertical.append({"label": item["tipo"], "cant": paq})
+                mapa_vertical.append({"label": item["tipo"], "cant": paq_size})
 
-            while sobra > 0:
-                cant_s = min(sobra, 60)
-                saldos.append({"label": item["tipo"], "cant": cant_s})
-                sobra -= cant_s
+            # Lógica de saldos equilibrados (si sobra, dividir en partes pequeñas)
+            if sobra > 0:
+                # Si el saldo es grande, lo dividimos en dos para equilibrar
+                if sobra > 60:
+                    parte1 = sobra // 2
+                    parte2 = sobra - parte1
+                    saldos_lista.append({"label": item["tipo"], "cant": parte1})
+                    saldos_lista.append({"label": item["tipo"], "cant": parte2})
+                else:
+                    saldos_lista.append({"label": item["tipo"], "cant": sobra})
 
+        # Renderizado en el planchón (Máximo 2 paquetes por fila: Izquierda y Derecha)
         paq_render = list(mapa_vertical)
-        atravesado = paq_render.pop() if len(paq_render) % 2 != 0 else None
         rows = [paq_render[i:i+2] for i in range(0, len(paq_render), 2)]
-        saldos_render = list(saldos)
+        saldos_render = list(saldos_lista)
 
+        # Dibujar las filas
         for row in rows:
-            cols = st.columns([1,1.5,1.5,1])
+            cols = st.columns([1, 1.5, 1.5, 1])
+            
+            # Lado Izquierdo (Saldo)
             with cols[0]:
                 if saldos_render:
                     s = saldos_render.pop(0)
                     st.markdown(f'<div class="saldo-box">{s["label"]}<br>{s["cant"]} UND</div>', unsafe_allow_html=True)
+            
+            # Paquete Izquierdo
             with cols[1]:
-                st.markdown(f'<div class="paquete-v">{row[0]["label"]}<br>({row[0]["cant"]})</div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="paquete-v">{row[0]["label"]}<br>({row[0]["cant"]} UND)</div>', unsafe_allow_html=True)
+            
+            # Paquete Derecho
             with cols[2]:
                 if len(row) > 1:
-                    st.markdown(f'<div class="paquete-v">{row[1]["label"]}<br>({row[1]["cant"]})</div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="paquete-v">{row[1]["label"]}<br>({row[1]["cant"]} UND)</div>', unsafe_allow_html=True)
+                else:
+                    st.write("") # Espacio vacío si es impar
+            
+            # Lado Derecho (Saldo)
             with cols[3]:
                 if saldos_render:
                     s = saldos_render.pop(0)
                     st.markdown(f'<div class="saldo-box">{s["label"]}<br>{s["cant"]} UND</div>', unsafe_allow_html=True)
 
-        if atravesado:
-            st.markdown(
-            f'<div class="paquete-h">📦 PAQUETE COMPLETO TRASERO<br>{atravesado["label"]} ({atravesado["cant"]} UND)</div>',
-            unsafe_allow_html=True
-            )
-    else:
-        st.info("Pegue un pedido en el panel izquierdo para generar la simulación.")
+        # Si aún quedan saldos por mostrar al final
+        while saldos_render:
+            cols_fin = st.columns([1, 1, 1, 1])
+            for c in cols_fin:
+                if saldos_render:
+                    s = saldos_render.pop(0)
+                    with c:
+                        st.markdown(f'<div class="saldo-box">{s["label"]}<br>{s["cant"]} UND</div>', unsafe_allow_html=True)
